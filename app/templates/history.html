@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}History - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Evaluation History</h1>
+    <p>Past evaluation sessions</p>
+</div>
+
+<div id="loading" class="card">
+    <div class="loading">Loading history...</div>
+</div>
+
+<div id="history-list" class="hidden">
+</div>
+
+<div id="empty-state" class="card hidden">
+    <p>No evaluations yet. <a href="/">Create your first evaluation</a></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+async function loadHistory() {
+    const response = await fetch('/api/evaluations');
+    const sessions = await response.json();
+
+    document.getElementById('loading').classList.add('hidden');
+
+    if (sessions.length === 0) {
+        document.getElementById('empty-state').classList.remove('hidden');
+        return;
+    }
+
+    const container = document.getElementById('history-list');
+    container.classList.remove('hidden');
+
+    sessions.forEach(session => {
+        const card = document.createElement('div');
+        card.className = 'card history-card';
+
+        const date = new Date(session.created_at).toLocaleDateString();
+        const statusClass = session.status === 'completed' ? 'success' :
+                           session.status === 'evaluating' ? 'warning' : 'info';
+
+        card.innerHTML = `
+            <div class="history-header">
+                <h3>${session.profile_name}</h3>
+                <span class="badge badge-${statusClass}">${session.status}</span>
+            </div>
+            <div class="history-meta">
+                <span>Chunk: ${session.chunk_type}</span>
+                <span>Models: ${session.total_generations}</span>
+                <span>Rated: ${session.completed_ratings}/${session.total_generations}</span>
+                <span>Date: ${date}</span>
+            </div>
+            <div class="history-actions">
+                ${session.status === 'evaluating' ?
+                    `<a href="/evaluate/${session.id}" class="btn btn-primary">Continue Evaluation</a>` :
+                    session.status === 'completed' ?
+                    `<a href="/summary/${session.id}" class="btn btn-primary">View Results</a>` :
+                    `<span class="badge badge-info">In Progress</span>`
+                }
+                <button class="btn btn-danger btn-sm" onclick="deleteSession('${session.id}')">Delete</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function deleteSession(sessionId) {
+    if (!confirm('Are you sure you want to delete this evaluation?')) return;
+
+    const response = await fetch(`/api/evaluations/${sessionId}`, {
+        method: 'DELETE'
+    });
+
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert('Failed to delete session');
+    }
+}
+
+loadHistory();
+{% endblock %}

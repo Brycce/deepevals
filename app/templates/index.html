@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}New Evaluation - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>New Model Evaluation</h1>
+    <p>Compare AI models on personality analysis generation</p>
+</div>
+
+<form id="evaluation-form" class="card">
+    <div class="form-section">
+        <h2>1. Profile</h2>
+        <p class="help-text">Using: <strong id="profile-name">Andrew Wilkinson</strong></p>
+        <input type="hidden" id="profile-input" name="profile_data" />
+        <details>
+            <summary>View/Edit Profile JSON</summary>
+            <textarea id="profile-textarea" rows="8"></textarea>
+            <div class="json-tools">
+                <button type="button" id="fix-json" class="btn btn-secondary btn-sm">Fix & Format</button>
+                <button type="button" id="validate-json" class="btn btn-secondary btn-sm">Validate</button>
+                <input type="file" id="profile-file" accept=".json" style="display:inline-block; margin-left: 1rem;" />
+                <span id="json-status"></span>
+            </div>
+        </details>
+    </div>
+
+    <div class="form-section">
+        <h2>2. Chunk Type</h2>
+        <p class="help-text">Which report section do you want to evaluate?</p>
+
+        <div class="form-group">
+            <label for="chunk-type">Report Section</label>
+            <select id="chunk-type" name="chunk_type" required>
+                {% for chunk in chunk_types %}
+                <option value="{{ chunk.id }}">{{ chunk.name }} - {{ chunk.description }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>3. Models to Compare</h2>
+        <p class="help-text">Select which models to include in this evaluation</p>
+
+        <div class="model-grid">
+            {% for model in models %}
+            <label class="model-checkbox">
+                <input type="checkbox" name="models" value="{{ model.id }}" checked />
+                <span class="model-name">{{ model.display_name }}</span>
+                <span class="model-provider">{{ model.provider }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        {% if not models %}
+        <div class="alert alert-warning">
+            No models available. Please configure API keys in your .env file.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="form-section">
+        <h2>4. Evaluator (Optional)</h2>
+        <div class="form-group">
+            <label for="evaluator-name">Your Name</label>
+            <input type="text" id="evaluator-name" name="evaluator_name" placeholder="For tracking purposes" />
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="start-btn">Start Evaluation</button>
+    </div>
+</form>
+
+<div id="status-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2>Generating...</h2>
+        <p>Running models in parallel. This may take a minute.</p>
+        <div id="generation-status"></div>
+        <div class="spinner"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const form = document.getElementById('evaluation-form');
+const profileInput = document.getElementById('profile-input');
+const profileTextarea = document.getElementById('profile-textarea');
+const profileFile = document.getElementById('profile-file');
+const profileNameEl = document.getElementById('profile-name');
+const statusModal = document.getElementById('status-modal');
+const generationStatus = document.getElementById('generation-status');
+
+// JSON validation and fixing
+const validateBtn = document.getElementById('validate-json');
+const fixBtn = document.getElementById('fix-json');
+const jsonStatus = document.getElementById('json-status');
+
+// Load default profile on page load
+async function loadDefaultProfile() {
+    try {
+        const response = await fetch('/sample_profiles/andrew_wilkinson.json');
+        if (response.ok) {
+            const data = await response.json();
+            const jsonStr = JSON.stringify(data, null, 2);
+            profileInput.value = jsonStr;
+            profileTextarea.value = jsonStr;
+            profileNameEl.textContent = data.name || 'Unknown';
+        }
+    } catch (e) {
+        console.error('Failed to load default profile', e);
+    }
+}
+loadDefaultProfile();
+
+// Sync textarea to hidden input
+profileTextarea.addEventListener('input', () => {
+    profileInput.value = profileTextarea.value;
+    try {
+        const data = JSON.parse(profileTextarea.value);
+        profileNameEl.textContent = data.name || 'Unknown';
+    } catch (e) {}
+});
+
+function fixJsonString(str) {
+    let result = str;
+
+    // Step 1: Replace control characters
+    result = result.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        switch (char) {
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            default: return '';
+        }
+    });
+
+    // Step 2: Fix common issues
+    // Remove trailing commas before } or ]
+    result = result.replace(/,(\s*[}\]])/g, '$1');
+    // Remove double commas
+    result = result.replace(/,\s*,/g, ',');
+    // Add quotes to unquoted keys
+    result = result.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+    // Fix single quotes to double quotes
+    result = result.replace(/'/g, '"');
+    // Remove any BOM or weird unicode
+    result = result.replace(/^\uFEFF/, '');
+
+    // Try to parse
+    try {
+        return JSON.stringify(JSON.parse(result), null, 2);
+    } catch (e) {
+        // Extract position from error
+        const match = e.message.match(/position (\d+)/);
+        if (match) {
+            const pos = parseInt(match[1]);
+            const around = result.substring(Math.max(0, pos - 30), pos + 30);
+            throw new Error(`Near: ...${around}...`);
+        }
+        throw e;
+    }
+}
+
+validateBtn.addEventListener('click', () => {
+    try {
+        JSON.parse(profileTextarea.value);
+        jsonStatus.textContent = ' Valid JSON';
+        jsonStatus.style.color = '#22c55e';
+    } catch (e) {
+        jsonStatus.textContent = ' Invalid: ' + e.message;
+        jsonStatus.style.color = '#ef4444';
+    }
+});
+
+fixBtn.addEventListener('click', () => {
+    try {
+        profileTextarea.value = fixJsonString(profileTextarea.value);
+        profileInput.value = profileTextarea.value;
+        const data = JSON.parse(profileTextarea.value);
+        profileNameEl.textContent = data.name || 'Unknown';
+        jsonStatus.textContent = ' Fixed & Formatted';
+        jsonStatus.style.color = '#22c55e';
+    } catch (e) {
+        jsonStatus.textContent = ' Could not fix: ' + e.message;
+        jsonStatus.style.color = '#ef4444';
+    }
+});
+
+// Handle file upload
+profileFile.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const text = await file.text();
+        profileTextarea.value = text;
+        profileInput.value = text;
+        try {
+            const data = JSON.parse(text);
+            profileNameEl.textContent = data.name || 'Unknown';
+        } catch (e) {}
+    }
+});
+
+// Form submission
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate profile JSON
+    let profileData;
+    const jsonValue = profileInput.value || profileTextarea.value;
+    try {
+        profileData = JSON.parse(jsonValue);
+    } catch (e) {
+        alert('Invalid JSON in profile data');
+        return;
+    }
+
+    // Get selected models
+    const selectedModels = Array.from(document.querySelectorAll('input[name="models"]:checked'))
+        .map(cb => cb.value);
+
+    if (selectedModels.length < 2) {
+        alert('Please select at least 2 models to compare');
+        return;
+    }
+
+    const chunkType = document.getElementById('chunk-type').value;
+    const evaluatorName = document.getElementById('evaluator-name').value;
+
+    // Show status modal
+    statusModal.classList.remove('hidden');
+
+    try {
+        // Create evaluation session
+        const response = await fetch('/api/evaluations', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                profile_data: profileData,
+                chunk_type: chunkType,
+                model_ids: selectedModels,
+                evaluator_name: evaluatorName || null,
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to create evaluation');
+        }
+
+        const session = await response.json();
+
+        // Poll for completion
+        await pollStatus(session.id);
+
+        // Redirect to evaluation page
+        window.location.href = `/evaluate/${session.id}`;
+
+    } catch (e) {
+        statusModal.classList.add('hidden');
+        alert('Error: ' + e.message);
+    }
+});
+
+async function pollStatus(sessionId) {
+    while (true) {
+        const response = await fetch(`/api/evaluations/${sessionId}/status`);
+        const status = await response.json();
+
+        // Update status display
+        generationStatus.innerHTML = status.generations
+            .map(g => `<div class="gen-status ${g.status}">${g.display_label}: ${g.status}</div>`)
+            .join('');
+
+        // Wait until ALL generations are done (completed or failed)
+        const allDone = status.generations.every(g =>
+            g.status === 'completed' || g.status === 'failed'
+        );
+
+        if (allDone && status.generations.length > 0) {
+            break;
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+    }
+}
+{% endblock %}

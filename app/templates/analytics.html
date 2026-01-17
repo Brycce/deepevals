@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Analytics</h1>
+    <p>Aggregate statistics across all evaluations</p>
+</div>
+
+<div id="loading" class="card">
+    <div class="loading">Loading analytics...</div>
+</div>
+
+<div id="analytics" class="hidden">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="total-sessions">-</div>
+            <div class="stat-label">Total Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-generations">-</div>
+            <div class="stat-label">Total Generations</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-ratings">-</div>
+            <div class="stat-label">Total Ratings</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Model Leaderboard</h2>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Model</th>
+                    <th>Win Rate</th>
+                    <th>Good</th>
+                    <th>Bad</th>
+                    <th>Avg Time</th>
+                    <th>Total Cost</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="empty-state" class="card hidden">
+    <p>No data yet. <a href="/">Create your first evaluation</a> to see analytics.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+async function loadAnalytics() {
+    const response = await fetch('/api/analytics/summary');
+    const data = await response.json();
+
+    document.getElementById('loading').classList.add('hidden');
+
+    if (data.total_sessions === 0) {
+        document.getElementById('empty-state').classList.remove('hidden');
+        return;
+    }
+
+    document.getElementById('analytics').classList.remove('hidden');
+
+    document.getElementById('total-sessions').textContent = data.total_sessions;
+    document.getElementById('total-generations').textContent = data.total_generations;
+    document.getElementById('total-ratings').textContent = data.total_ratings;
+
+    const tbody = document.getElementById('leaderboard');
+    data.model_stats.forEach((model, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>#${index + 1}</strong></td>
+            <td>${model.model_display_name}</td>
+            <td><strong>${model.win_rate}%</strong></td>
+            <td class="text-success">${model.good_ratings}</td>
+            <td class="text-danger">${model.bad_ratings}</td>
+            <td>${formatTime(model.avg_time_ms)}</td>
+            <td>$${model.estimated_cost.toFixed(4)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function formatTime(ms) {
+    if (!ms) return '-';
+    if (ms < 1000) return Math.round(ms) + 'ms';
+    return (ms / 1000).toFixed(1) + 's';
+}
+
+loadAnalytics();
+{% endblock %}

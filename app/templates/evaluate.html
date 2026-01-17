@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluate - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Blind Evaluation</h1>
+    <p id="session-info">Loading...</p>
+</div>
+
+<div class="progress-bar">
+    <div id="progress" class="progress-fill" style="width: 0%"></div>
+</div>
+<div id="progress-text" class="progress-text">0 / 0 rated</div>
+
+<div class="eval-panels three-col">
+    <!-- Left Panel: Prompt -->
+    <div class="panel panel-prompt">
+        <h3>Prompt</h3>
+        <div class="prompt-section">
+            <pre id="prompt-text"></pre>
+        </div>
+    </div>
+
+    <!-- Middle Panel: Output -->
+    <div class="panel panel-content">
+        <div class="panel-header">
+            <span id="generation-label" class="generation-label">A</span>
+            <span id="generation-status" class="badge">loading</span>
+            <div class="nav-buttons">
+                <button id="prev-btn" class="btn btn-secondary btn-sm" disabled>&larr; Prev</button>
+                <button id="next-btn" class="btn btn-secondary btn-sm">Next &rarr;</button>
+            </div>
+        </div>
+        <div id="generation-output" class="generation-output markdown-body">
+            <div class="loading">Loading generation...</div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Feedback -->
+    <div class="panel panel-feedback">
+        <h3>Rate this output</h3>
+
+        <div class="rating-buttons">
+            <button id="rate-good" class="btn btn-success btn-lg">Good</button>
+            <button id="rate-bad" class="btn btn-danger btn-lg">Bad</button>
+        </div>
+
+        <div class="form-group">
+            <label for="rating-notes">Notes (what did you like/dislike?)</label>
+            <textarea id="rating-notes" rows="6" placeholder="Optional feedback..."></textarea>
+        </div>
+
+        <div id="completion-message" class="completion-message hidden">
+            <p>All rated!</p>
+            <a href="/summary/{{ session_id }}" class="btn btn-primary">View Results &rarr;</a>
+        </div>
+
+        <div id="unrated-list" class="unrated-list"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const sessionId = '{{ session_id }}';
+let generations = [];
+let currentIndex = 0;
+let ratings = {};
+
+async function loadGenerations() {
+    const response = await fetch(`/api/evaluations/${sessionId}/generations`);
+    generations = await response.json();
+
+    // Load existing ratings
+    for (const gen of generations) {
+        if (gen.has_rating) {
+            const ratingResponse = await fetch(`/api/ratings/${gen.id}`);
+            const rating = await ratingResponse.json();
+            if (rating.has_rating) {
+                ratings[gen.id] = {
+                    is_good: rating.is_good,
+                    notes: rating.notes || ''
+                };
+            }
+        }
+    }
+
+    // Load session info
+    const sessionResponse = await fetch(`/api/evaluations/${sessionId}`);
+    const session = await sessionResponse.json();
+    document.getElementById('session-info').textContent =
+        `"${session.chunk_type}" for ${session.profile_name}`;
+
+    updateProgress();
+    showGeneration(currentIndex);
+}
+
+function updateProgress() {
+    const rated = Object.keys(ratings).length;
+    const total = generations.length;
+    const percent = total > 0 ? (rated / total * 100) : 0;
+
+    document.getElementById('progress').style.width = percent + '%';
+    document.getElementById('progress-text').textContent = `${rated} / ${total} rated`;
+
+    // Show completion message if all rated
+    if (rated === total && total > 0) {
+        document.getElementById('completion-message').classList.remove('hidden');
+        document.getElementById('unrated-list').innerHTML = '';
+    } else {
+        document.getElementById('completion-message').classList.add('hidden');
+        // Show unrated items
+        const unrated = generations.filter(g => g.status === 'completed' && !ratings[g.id]);
+        if (unrated.length > 0 && unrated.length < total) {
+            document.getElementById('unrated-list').innerHTML =
+                '<p class="unrated-hint">Unrated: ' +
+                unrated.map((g, i) => `<a href="#" onclick="goTo(${generations.indexOf(g)}); return false;">${g.display_label}</a>`).join(', ') +
+                '</p>';
+        } else {
+            document.getElementById('unrated-list').innerHTML = '';
+        }
+    }
+}
+
+function showGeneration(index) {
+    const gen = generations[index];
+    if (!gen) return;
+
+    document.getElementById('generation-label').textContent = gen.display_label;
+    document.getElementById('generation-status').textContent = gen.status;
+    document.getElementById('generation-status').className = 'badge badge-' + gen.status;
+
+    // Set prompt text
+    document.getElementById('prompt-text').textContent = gen.prompt_text || 'No prompt available';
+
+    const output = document.getElementById('generation-output');
+    if (gen.status === 'completed' && gen.output_text) {
+        output.innerHTML = marked.parse(gen.output_text);
+    } else if (gen.status === 'failed') {
+        output.innerHTML = '<div class="error">Generation failed</div>';
+    } else {
+        output.innerHTML = '<div class="loading">Generating...</div>';
+    }
+
+    // Restore any existing rating
+    const existing = ratings[gen.id];
+    document.getElementById('rating-notes').value = existing?.notes || '';
+
+    // Update button states
+    document.getElementById('rate-good').classList.toggle('selected', existing?.is_good === true);
+    document.getElementById('rate-bad').classList.toggle('selected', existing?.is_good === false);
+
+    // Update nav buttons
+    document.getElementById('prev-btn').disabled = index === 0;
+    document.getElementById('next-btn').disabled = index === generations.length - 1;
+}
+
+async function submitRating(isGood) {
+    const gen = generations[currentIndex];
+    const notes = document.getElementById('rating-notes').value;
+
+    const response = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            generation_id: gen.id,
+            is_good: isGood,
+            notes: notes || null
+        })
+    });
+
+    if (response.ok) {
+        ratings[gen.id] = { is_good: isGood, notes };
+        gen.has_rating = true;
+        updateProgress();
+        showGeneration(currentIndex);
+
+        // Auto-advance if not at end
+        if (currentIndex < generations.length - 1) {
+            setTimeout(() => {
+                currentIndex++;
+                showGeneration(currentIndex);
+            }, 300);
+        }
+    }
+}
+
+function goTo(index) {
+    currentIndex = index;
+    showGeneration(currentIndex);
+}
+
+document.getElementById('rate-good').addEventListener('click', () => submitRating(true));
+document.getElementById('rate-bad').addEventListener('click', () => submitRating(false));
+
+document.getElementById('prev-btn').addEventListener('click', () => {
+    if (currentIndex > 0) {
+        currentIndex--;
+        showGeneration(currentIndex);
+    }
+});
+
+document.getElementById('next-btn').addEventListener('click', () => {
+    if (currentIndex < generations.length - 1) {
+        currentIndex++;
+        showGeneration(currentIndex);
+    }
+});
+
+// Load marked.js for markdown rendering
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+script.onload = loadGenerations;
+document.head.appendChild(script);
+{% endblock %}

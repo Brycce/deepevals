@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Results - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Evaluation Results</h1>
+    <p id="session-info">Loading...</p>
+</div>
+
+<div id="loading" class="card">
+    <div class="loading">Loading results...</div>
+</div>
+
+<div id="results" class="hidden">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="good-count">-</div>
+            <div class="stat-label">Good Ratings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="bad-count">-</div>
+            <div class="stat-label">Bad Ratings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-time">-</div>
+            <div class="stat-label">Total Time</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-cost">-</div>
+            <div class="stat-label">Estimated Cost</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Results by Model</h2>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Label</th>
+                    <th>Model</th>
+                    <th>Rating</th>
+                    <th>Time</th>
+                    <th>Input Tokens</th>
+                    <th>Output Tokens</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+            </tbody>
+        </table>
+    </div>
+
+    <div id="generations-detail">
+    </div>
+</div>
+
+<div id="not-complete" class="card hidden">
+    <h2>Evaluation Not Complete</h2>
+    <p>Please rate all generations before viewing results.</p>
+    <a href="/evaluate/{{ session_id }}" class="btn btn-primary">Continue Evaluation</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const sessionId = '{{ session_id }}';
+
+async function loadResults() {
+    try {
+        const response = await fetch(`/api/evaluations/${sessionId}/reveal`);
+
+        if (!response.ok) {
+            if (response.status === 400) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('not-complete').classList.remove('hidden');
+                return;
+            }
+            throw new Error('Failed to load results');
+        }
+
+        const generations = await response.json();
+
+        // Load session info
+        const sessionResponse = await fetch(`/api/evaluations/${sessionId}`);
+        const session = await sessionResponse.json();
+        document.getElementById('session-info').textContent =
+            `"${session.chunk_type}" evaluation for ${session.profile_name}`;
+
+        // Calculate totals
+        let goodCount = 0;
+        let badCount = 0;
+        let totalTime = 0;
+        let totalCost = 0;
+
+        const tbody = document.getElementById('results-body');
+        const detailsContainer = document.getElementById('generations-detail');
+
+        generations.forEach(gen => {
+            if (gen.is_good) goodCount++;
+            else badCount++;
+            totalTime += gen.generation_time_ms || 0;
+
+            // Calculate cost
+            const cost = calculateCost(gen.model_id, gen.input_tokens || 0, gen.output_tokens || 0);
+            totalCost += cost;
+
+            // Add table row
+            const tr = document.createElement('tr');
+            tr.className = gen.is_good ? 'rating-good' : 'rating-bad';
+            tr.innerHTML = `
+                <td><strong>${gen.display_label}</strong></td>
+                <td>${gen.model_display_name}</td>
+                <td><span class="badge badge-${gen.is_good ? 'success' : 'danger'}">${gen.is_good ? 'Good' : 'Bad'}</span></td>
+                <td>${formatTime(gen.generation_time_ms)}</td>
+                <td>${(gen.input_tokens || 0).toLocaleString()}</td>
+                <td>${(gen.output_tokens || 0).toLocaleString()}</td>
+                <td>$${cost.toFixed(4)}</td>
+            `;
+            tbody.appendChild(tr);
+
+            // Add detail card
+            const detailCard = document.createElement('div');
+            detailCard.className = 'card generation-detail';
+            detailCard.innerHTML = `
+                <div class="detail-header">
+                    <span class="generation-label">${gen.display_label}</span>
+                    <span class="model-name">${gen.model_display_name}</span>
+                    <span class="badge badge-${gen.is_good ? 'success' : 'danger'}">${gen.is_good ? 'Good' : 'Bad'}</span>
+                </div>
+                ${gen.rating_notes ? `<div class="rating-notes"><strong>Notes:</strong> ${gen.rating_notes}</div>` : ''}
+                <details>
+                    <summary>View Output</summary>
+                    <div class="generation-output markdown-body">${marked.parse(gen.output_text || '')}</div>
+                </details>
+            `;
+            detailsContainer.appendChild(detailCard);
+        });
+
+        // Update stats
+        document.getElementById('good-count').textContent = goodCount;
+        document.getElementById('bad-count').textContent = badCount;
+        document.getElementById('total-time').textContent = formatTime(totalTime);
+        document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(4);
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('results').classList.remove('hidden');
+
+    } catch (e) {
+        document.getElementById('loading').innerHTML = `<div class="error">Error: ${e.message}</div>`;
+    }
+}
+
+const COSTS = {
+    'claude-sonnet-4-5-20250929': { input: 3.0, output: 15.0 },
+    'claude-haiku-4-5-20251001': { input: 0.25, output: 1.25 },
+    'gpt-4': { input: 30.0, output: 60.0 },
+    'gpt-4o': { input: 2.50, output: 10.0 },
+    'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
+    'meta-llama/llama-3.3-70b-instruct': { input: 0.50, output: 0.75 },
+    'x-ai/grok-2-1212': { input: 5.0, output: 15.0 },
+    'moonshotai/moonshot-v1-128k': { input: 1.0, output: 2.0 },
+};
+
+function calculateCost(modelId, inputTokens, outputTokens) {
+    const costs = COSTS[modelId] || { input: 1.0, output: 2.0 };
+    return (inputTokens / 1000000 * costs.input) + (outputTokens / 1000000 * costs.output);
+}
+
+function formatTime(ms) {
+    if (!ms) return '-';
+    if (ms < 1000) return ms + 'ms';
+    return (ms / 1000).toFixed(1) + 's';
+}
+
+// Load marked.js for markdown rendering
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+script.onload = loadResults;
+document.head.appendChild(script);
+{% endblock %}

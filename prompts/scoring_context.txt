@@ -1,0 +1,33 @@
+**Personality & Core Traits:**
+- Big Five (IPIP-50): Percentiles based on IPIP normative data (N > 300,000). Below 25 = Low, 25-40 = Low-Average, 40-60 = Average, 60-75 = High-Average, 75+ = High
+- Personality Styles: Cluster A (Odd/Eccentric), Cluster B (Dramatic/Emotional), Cluster C (Anxious/Fearful). Scores 1-5; 3.5+ = High Relevance indicating personality style patterns.
+- High Conflict Personality (HCP) Index: Composite score detecting rigid thinking, blame externalization, and conflict escalation. Index < 2.5 = Flexible interpersonal style, 2.5-3.4 = Some rigid patterns, >= 3.5 = Patterns worth exploring with a professional.
+- Dark Triad (SD3): Machiavellianism, Narcissism, Psychopathy on 1-5 scale. Norms: M=2.7, N=2.6, P=2.0 (Jones & Paulhus 2014). Values significantly above norms warrant attention
+- Attachment (ECR-S): Anxiety and Avoidance dimensions. Low both = Secure, High Anxiety/Low Avoidance = Anxious-Preoccupied, Low Anxiety/High Avoidance = Dismissive-Avoidant, High both = Fearful-Avoidant
+
+**Values & Motivation:**
+- Values (PVQ-21): Schwartz's 10 basic values. Top values reflect core motivations that drive behavior
+- Career Interests (O*NET Mini-IP): RIASEC codes - R=Realistic, I=Investigative, A=Artistic, S=Social, E=Enterprising, C=Conventional. Top 3 codes indicate best career fit
+- Work Motivation (WEIMS): Self-Determination Theory. Intrinsic/Identified = autonomous motivation (healthy). Introjected/External = controlled motivation. Amotivation flag = concerning lack of motivation
+
+**Mental Health Screening Indicators:**
+- GAD-7 (Anxiety): 0-21 scale; 0-4 = Minimal, 5-9 = Mild, 10-14 = Moderate, 15-21 = Severe. Score >=10 indicates talking to a professional may be helpful
+- PHQ-9 (Depression): 0-27 scale; 0-4 = Minimal, 5-9 = Mild, 10-14 = Moderate, 15-19 = Moderately Severe, 20-27 = Severe. Score >=10 indicates professional evaluation may be beneficial. suicidalIdeationFlag=true requires crisis resources
+- PCL-5 (PTSD): 0-80 scale; Score >=31 indicates professional evaluation for trauma warranted. Clusters: Intrusion, Avoidance, Cognition/Mood changes, Arousal
+- ACE (Adverse Childhood Experiences): 0-10 scale; 0-1 = Low Risk, 2-3 = Moderate Risk, 4+ = High Risk
+- ASRS-18 (ADHD): Total 0-72, subscales Inattention (0-36) and Hyperactivity (0-36). Part A screener: 4+ positives = screening indicates potential attention patterns
+- AQ-10 (Autism Screening): 0-10 scale. Score >=6 = screening indicates potential autistic traits worth exploring with a professional
+
+**Coping & Resilience:**
+- DERS-16 (Emotion Dysregulation): Higher scores = more difficulty. subscalesHigh array indicates specific problem areas
+- DTS (Distress Tolerance): 1-5 scale; Higher = better tolerance. Below 2.5 = concerning low tolerance
+- RSQ (Rejection Sensitivity): Higher = more sensitive to rejection. High scores predict relationship difficulties
+- SCS-SF (Self-Compassion): 1-5 scale; Higher = more self-compassionate
+
+**Wellbeing:**
+- SWLS (Life Satisfaction): 5-25 scale; 5-9 = Extremely Dissatisfied, 10-14 = Dissatisfied, 15-19 = Slightly Dissatisfied to Satisfied, 20-24 = Satisfied, 25 = Extremely Satisfied
+- UCLA-3 (Loneliness): 3-15 scale; 3-5 = Not Lonely, 6-8 = Some Loneliness, 9-11 = Moderate, 12-15 = High Loneliness
+- PERMA (Wellbeing): 0-10 scale across 5 pillars (Positive emotions, Engagement, Relationships, Meaning, Accomplishment); 8+ = Flourishing, 6-7.9 = Good, 4-5.9 = Moderate, <4 = Low
+
+**Relationships:**
+- CSI-16 (Relationship Satisfaction): 16-80 scale; < 57 = Potential Distress, 57-68 = Moderate, > 68 = High Satisfaction

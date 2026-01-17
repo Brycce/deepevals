@@ -1,0 +1,151 @@
+{
+  "id": "alex-sample-uuid",
+  "name": "Alex",
+  "timestamp": "2023-10-27T10:00:00.000Z",
+  "demographics": {
+    "age": 29
+  },
+  "_internal": {
+    "darkTriad": {
+      "machiavellianism": 2.5,
+      "narcissism": 3.8,
+      "psychopathy": 1.9,
+      "flagged": true
+    }
+  },
+  "assessments": {
+    "ipip_50": {
+      "domainScores": {
+        "neuroticism": { "raw": 22, "label": "Low", "percentileEstimate": 25 },
+        "extraversion": { "raw": 42, "label": "High", "percentileEstimate": 85 },
+        "openness": { "raw": 45, "label": "High", "percentileEstimate": 90 },
+        "agreeableness": { "raw": 38, "label": "High", "percentileEstimate": 75 },
+        "conscientiousness": { "raw": 28, "label": "Average", "percentileEstimate": 45 }
+      }
+    },
+    "personality_styles": {
+      "clusterA": { "raw": 2.1, "label": "Low Relevance" },
+      "clusterB": { "raw": 4.2, "label": "High Relevance" },
+      "clusterC": { "raw": 2.5, "label": "Low Relevance" }
+    },
+    "ecr_s": {
+      "anxiety": { "raw": 2.2, "label": "Low" },
+      "avoidance": { "raw": 2.5, "label": "Low" },
+      "attachmentStyleLabel": "Secure"
+    },
+    "csi_16": {
+      "score": 70,
+      "label": "High Satisfaction"
+    },
+    "ders_16": {
+      "totalScore": 30,
+      "subscalesHigh": []
+    },
+    "onet_mini_ip": {
+      "scores": { "R": 12, "I": 15, "A": 28, "S": 25, "E": 20, "C": 10 },
+      "topCodes": ["A", "S", "E"]
+    },
+    "pvq_21": {
+      "topValues": ["Stimulation", "Self-Direction", "Universalism"],
+      "lowestValues": ["Tradition", "Conformity", "Power"]
+    },
+    "weims": {
+      "dominantMotivation": ["Intrinsic", "Identified"],
+      "amotivationFlag": false
+    },
+    "ace": {
+      "score": 1,
+      "label": "Some Exposure"
+    },
+    "gad_7": {
+      "score": 3,
+      "label": "Minimal"
+    },
+    "phq_9": {
+      "score": 2,
+      "label": "Minimal",
+      "suicidalIdeationFlag": false
+    },
+    "pcl_5": {
+      "score": 6,
+      "label": "No PTSD Indication",
+      "ptsdFlag": false,
+      "clusters": {
+        "intrusion": 2,
+        "avoidance": 1,
+        "cognition": 2,
+        "arousal": 1
+      }
+    },
+    "dts": {
+      "score": 4.2,
+      "label": "High Tolerance"
+    },
+    "rsq": {
+      "score": 4.5,
+      "label": "Low Sensitivity"
+    },
+    "scs_sf": {
+      "score": 3.8,
+      "label": "Moderate",
+      "subscales": {
+        "self_kindness": 4.0,
+        "self_judgment": 3.5,
+        "common_humanity": 4.2,
+        "isolation": 3.8,
+        "mindfulness": 4.0,
+        "over_identification": 3.3
+      }
+    },
+    "swls": {
+      "score": 20,
+      "label": "Satisfied"
+    },
+    "ucla_3": {
+      "score": 4,
+      "label": "Not Lonely"
+    },
+    "perma": {
+      "overallWellbeing": 7.2,
+      "label": "Good Wellbeing",
+      "pillars": {
+        "positive": 7.5,
+        "engagement": 8.0,
+        "relationships": 7.0,
+        "meaning": 7.2,
+        "accomplishment": 6.3
+      },
+      "supplementary": {
+        "negative": 2.5,
+        "health": 7.5,
+        "loneliness": 2.0,
+        "happiness": 7.8
+      }
+    },
+    "asrs_18": {
+      "totalScore": 14,
+      "partAScore": 6,
+      "partAPositiveCount": 1,
+      "partALabel": "Negative Screen",
+      "likelyADHD": false,
+      "partBScore": 8,
+      "inattentionScore": 8,
+      "inattentionLabel": "Low",
+      "hyperactivityScore": 6,
+      "hyperactivityLabel": "Low",
+      "label": "Low Symptoms",
+      "presentationType": "Subthreshold"
+    }
+  },
+  "customQuestionResponses": {
+    "conflict_triggers": "Time management and punctuality",
+    "fight_style": "I try to fix it immediately / anxious to resolve",
+    "repair_attempt": "I apologize immediately, even if I'm not sure I'm wrong",
+    "loved_respected": "I receive words of affirmation and encouragement",
+    "disrespected": "My time is wasted or plans are changed last minute",
+    "work_style": "Collaborative, social, and fast-paced",
+    "feedback": "Directly and immediately, no sugar-coating",
+    "core_goal": "Creative expression and mastery",
+    "boundaries": "I need significant alone time to recharge"
+  }
+}
