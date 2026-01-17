@@ -5,17 +5,24 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 import markdown
+import os
 
 from app.database import init_db
 from app.routers import evaluations_router, ratings_router
 from app.services.generation import GenerationService
 from app.config import CHUNK_TYPES
 
+# Track if DB is initialized (for serverless)
+_db_initialized = False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
-    await init_db()
+    global _db_initialized
+    if not _db_initialized:
+        await init_db()
+        _db_initialized = True
     yield
 
 
