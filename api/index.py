@@ -1,15 +1,11 @@
-from fastapi import FastAPI
-from mangum import Mangum
+from http.server import BaseHTTPRequestHandler
+import json
 
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"status": "ok"}
-
-@app.get("/api/health")
-async def health():
-    return {"healthy": True}
-
-# Wrap FastAPI with Mangum for serverless
-handler = Mangum(app, lifespan="off")
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        response = {"status": "ok", "path": self.path}
+        self.wfile.write(json.dumps(response).encode())
+        return
