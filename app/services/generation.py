@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models import EvaluationSession, Generation
-from app.providers import AnthropicProvider, OpenAIProvider, OpenRouterProvider, GroqProvider
+from app.providers import AnthropicProvider, OpenAIProvider, GroqProvider
 from app.services.prompts import PromptService
 from app.config import AVAILABLE_MODELS
 
@@ -17,7 +17,6 @@ class GenerationService:
         self.providers = {
             "anthropic": AnthropicProvider(),
             "openai": OpenAIProvider(),
-            "openrouter": OpenRouterProvider(),
             "groq": GroqProvider(),
         }
 
