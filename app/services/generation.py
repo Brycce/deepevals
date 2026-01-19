@@ -43,9 +43,13 @@ class GenerationService:
         chunk_type: str,
         model_ids: List[str],
         evaluator_name: Optional[str] = None,
+        runs_per_model: int = 1,
     ) -> EvaluationSession:
         """Create a new evaluation session with generations for each model."""
         profile_name = profile_data.get("name", "Unknown")
+
+        # Clamp runs_per_model to 1-5
+        runs_per_model = max(1, min(5, runs_per_model))
 
         # Create session
         session = EvaluationSession(
@@ -63,12 +67,18 @@ class GenerationService:
         user_prompt = PromptService.build_user_prompt(profile_data, chunk_type)
         full_prompt = f"System: {system_prompt}\n\n---\n\n{user_prompt}"
 
+        # Create list of all generation tasks (model_id, run_number)
+        all_generations = []
+        for model_id in model_ids:
+            for run_num in range(1, runs_per_model + 1):
+                all_generations.append((model_id, run_num))
+
         # Randomize display order for blind evaluation
-        display_orders = list(range(len(model_ids)))
+        display_orders = list(range(len(all_generations)))
         random.shuffle(display_orders)
 
         # Create generation records
-        for i, model_id in enumerate(model_ids):
+        for i, (model_id, run_num) in enumerate(all_generations):
             model_config = self.get_model_by_id(model_id)
             if model_config:
                 generation = Generation(
@@ -77,6 +87,7 @@ class GenerationService:
                     model_id=model_config["id"],
                     model_display_name=model_config["display_name"],
                     display_order=display_orders[i],
+                    run_number=run_num,
                     prompt_text=full_prompt,
                     status="pending",
                 )

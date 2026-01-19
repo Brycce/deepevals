@@ -78,6 +78,7 @@ async def create_evaluation(
         chunk_type=request.chunk_type,
         model_ids=request.model_ids,
         evaluator_name=request.evaluator_name,
+        runs_per_model=request.runs_per_model,
     )
 
     # Start generations in background
@@ -217,6 +218,7 @@ async def get_generations_blind(session_id: str, db: AsyncSession = Depends(get_
             prompt_text=prompt_text,
             status=g.status,
             has_rating=g.rating is not None,
+            run_number=g.run_number or 1,
         )
         for g in sorted(generations, key=lambda x: x.display_order)
     ]
@@ -260,6 +262,7 @@ async def reveal_generations(session_id: str, db: AsyncSession = Depends(get_db)
             error_message=g.error_message,
             is_good=g.rating.is_good if g.rating else None,
             rating_notes=g.rating.notes if g.rating else None,
+            run_number=g.run_number or 1,
         )
         for g in sorted(generations, key=lambda x: x.display_order)
     ]

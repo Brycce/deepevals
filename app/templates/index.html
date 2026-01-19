@@ -61,7 +61,22 @@
     </div>
 
     <div class="form-section">
-        <h2>4. Evaluator (Optional)</h2>
+        <h2>4. Runs per Model</h2>
+        <p class="help-text">How many times should each model generate? More runs help assess consistency.</p>
+        <div class="form-group">
+            <label for="runs-per-model">Number of runs</label>
+            <select id="runs-per-model" name="runs_per_model">
+                <option value="1" selected>1 run</option>
+                <option value="2">2 runs</option>
+                <option value="3">3 runs</option>
+                <option value="4">4 runs</option>
+                <option value="5">5 runs</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>5. Evaluator (Optional)</h2>
         <div class="form-group">
             <label for="evaluator-name">Your Name</label>
             <input type="text" id="evaluator-name" name="evaluator_name" placeholder="For tracking purposes" />
@@ -227,6 +242,7 @@ form.addEventListener('submit', async (e) => {
 
     const chunkType = document.getElementById('chunk-type').value;
     const evaluatorName = document.getElementById('evaluator-name').value;
+    const runsPerModel = parseInt(document.getElementById('runs-per-model').value);
 
     // Show status modal
     statusModal.classList.remove('hidden');
@@ -241,6 +257,7 @@ form.addEventListener('submit', async (e) => {
                 chunk_type: chunkType,
                 model_ids: selectedModels,
                 evaluator_name: evaluatorName || null,
+                runs_per_model: runsPerModel,
             })
         });
 

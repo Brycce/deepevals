@@ -95,6 +95,9 @@ async function loadResults() {
         const tbody = document.getElementById('results-body');
         const detailsContainer = document.getElementById('generations-detail');
 
+        // Check if there are multiple runs (show run labels if any run_number > 1)
+        const hasMultipleRuns = generations.some(g => g.run_number > 1);
+
         generations.forEach(gen => {
             if (gen.is_good) goodCount++;
             else badCount++;
@@ -105,11 +108,12 @@ async function loadResults() {
             totalCost += cost;
 
             // Add table row
+            const runLabel = hasMultipleRuns ? ` (Run ${gen.run_number})` : '';
             const tr = document.createElement('tr');
             tr.className = gen.is_good ? 'rating-good' : 'rating-bad';
             tr.innerHTML = `
                 <td><strong>${gen.display_label}</strong></td>
-                <td>${gen.model_display_name}</td>
+                <td>${gen.model_display_name}${runLabel}</td>
                 <td><span class="badge badge-${gen.is_good ? 'success' : 'danger'}">${gen.is_good ? 'Good' : 'Bad'}</span></td>
                 <td>${formatTime(gen.generation_time_ms)}</td>
                 <td>${(gen.input_tokens || 0).toLocaleString()}</td>
@@ -124,7 +128,7 @@ async function loadResults() {
             detailCard.innerHTML = `
                 <div class="detail-header">
                     <span class="generation-label">${gen.display_label}</span>
-                    <span class="model-name">${gen.model_display_name}</span>
+                    <span class="model-name">${gen.model_display_name}${runLabel}</span>
                     <span class="badge badge-${gen.is_good ? 'success' : 'danger'}">${gen.is_good ? 'Good' : 'Bad'}</span>
                 </div>
                 ${gen.rating_notes ? `<div class="rating-notes"><strong>Notes:</strong> ${gen.rating_notes}</div>` : ''}

@@ -37,6 +37,7 @@ class Generation(Base):
     model_id = Column(String(100), nullable=False)
     model_display_name = Column(String(100), nullable=False)
     display_order = Column(Integer, nullable=False)  # Randomized order for blind evaluation
+    run_number = Column(Integer, default=1)  # Which run this is (1-5) for multiple runs per model
     prompt_text = Column(Text, nullable=False)
     output_text = Column(Text, nullable=True)
     input_tokens = Column(Integer, nullable=True)

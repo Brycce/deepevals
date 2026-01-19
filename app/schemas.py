@@ -9,6 +9,7 @@ class CreateSessionRequest(BaseModel):
     chunk_type: str
     model_ids: List[str]  # List of model IDs to use
     evaluator_name: Optional[str] = None
+    runs_per_model: int = 1  # How many times each model should generate (1-5)
 
 
 class SubmitRatingRequest(BaseModel):
@@ -38,6 +39,7 @@ class GenerationBlind(BaseModel):
     prompt_text: Optional[str]
     status: str
     has_rating: bool
+    run_number: int = 1
 
 
 class GenerationRevealed(BaseModel):
@@ -55,6 +57,7 @@ class GenerationRevealed(BaseModel):
     error_message: Optional[str]
     is_good: Optional[bool]
     rating_notes: Optional[str]
+    run_number: int = 1
 
 
 class SessionSummary(BaseModel):
