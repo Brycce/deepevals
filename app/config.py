@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     # API Keys
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
-    OPENROUTER_API_KEY: str = ""
     GROQ_API_KEY: str = ""
 
     class Config:
@@ -51,15 +50,6 @@ AVAILABLE_MODELS = [
     ModelConfig("groq", "meta-llama/llama-4-maverick-17b-128e-instruct", "Llama 4 Maverick 17B"),
     ModelConfig("groq", "meta-llama/llama-4-scout-17b-16e-instruct", "Llama 4 Scout 17B"),
     ModelConfig("groq", "moonshotai/kimi-k2-instruct", "Kimi K2"),
-    # OpenRouter
-    ModelConfig("openrouter", "deepseek/deepseek-chat", "DeepSeek V3"),
-    ModelConfig("openrouter", "deepseek/deepseek-r1", "DeepSeek R1 (Reasoning)"),
-    ModelConfig("openrouter", "meta-llama/llama-3.3-70b-instruct", "Llama 3.3 70B"),
-    ModelConfig("openrouter", "x-ai/grok-2-1212", "Grok 2"),
-    ModelConfig("openrouter", "moonshotai/moonshot-v1-128k", "Kimi"),
-    ModelConfig("openrouter", "qwen/qwen-2.5-72b-instruct", "Qwen 2.5 72B"),
-    ModelConfig("openrouter", "google/gemini-2.0-flash-001", "Gemini 2.0 Flash"),
-    ModelConfig("openrouter", "mistralai/mistral-large-2411", "Mistral Large"),
 ]
 
 # Available chunk types for evaluation
