@@ -35,12 +35,10 @@ app = FastAPI(
 
 # Mount static files
 static_path = Path(__file__).parent / "static"
-static_path.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # Mount sample profiles
 sample_profiles_path = Path(__file__).parent.parent / "sample_profiles"
-sample_profiles_path.mkdir(exist_ok=True)
 app.mount("/sample_profiles", StaticFiles(directory=sample_profiles_path), name="sample_profiles")
 
 # Templates
