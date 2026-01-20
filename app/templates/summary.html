@@ -32,8 +32,24 @@
         </div>
     </div>
 
+    <div id="model-preference" class="card hidden">
+        <h2>Model Preference Summary</h2>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Good</th>
+                    <th>Bad</th>
+                    <th>Approval Rate</th>
+                </tr>
+            </thead>
+            <tbody id="preference-body">
+            </tbody>
+        </table>
+    </div>
+
     <div class="card">
-        <h2>Results by Model</h2>
+        <h2>Individual Results</h2>
         <table class="results-table">
             <thead>
                 <tr>
@@ -145,6 +161,52 @@ async function loadResults() {
         document.getElementById('bad-count').textContent = badCount;
         document.getElementById('total-time').textContent = formatTime(totalTime);
         document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(4);
+
+        // Show model preference summary if multiple runs
+        if (hasMultipleRuns) {
+            const modelStats = {};
+            generations.forEach(gen => {
+                if (!modelStats[gen.model_display_name]) {
+                    modelStats[gen.model_display_name] = { good: 0, bad: 0 };
+                }
+                if (gen.is_good) {
+                    modelStats[gen.model_display_name].good++;
+                } else {
+                    modelStats[gen.model_display_name].bad++;
+                }
+            });
+
+            // Sort by approval rate descending
+            const sortedModels = Object.entries(modelStats)
+                .map(([name, stats]) => ({
+                    name,
+                    good: stats.good,
+                    bad: stats.bad,
+                    total: stats.good + stats.bad,
+                    rate: stats.good / (stats.good + stats.bad)
+                }))
+                .sort((a, b) => b.rate - a.rate);
+
+            const prefBody = document.getElementById('preference-body');
+            sortedModels.forEach(model => {
+                const tr = document.createElement('tr');
+                const ratePercent = (model.rate * 100).toFixed(0);
+                tr.innerHTML = `
+                    <td><strong>${model.name}</strong></td>
+                    <td class="text-success">${model.good}</td>
+                    <td class="text-danger">${model.bad}</td>
+                    <td>
+                        <div class="approval-bar">
+                            <div class="approval-fill" style="width: ${ratePercent}%"></div>
+                        </div>
+                        <span>${ratePercent}%</span>
+                    </td>
+                `;
+                prefBody.appendChild(tr);
+            });
+
+            document.getElementById('model-preference').classList.remove('hidden');
+        }
 
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('results').classList.remove('hidden');
