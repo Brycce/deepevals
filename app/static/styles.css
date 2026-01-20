@@ -312,24 +312,25 @@ body {
 .badge-failed { background: #fee2e2; color: #991b1b; }
 
 /* Progress Bar */
-.progress-bar {
-    height: 4px;
+.progress-container {
+    height: 8px;
     background: var(--gray-200);
-    border-radius: 2px;
+    border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 0.25rem;
+    margin: 1.5rem 0 1rem;
 }
 
-.progress-fill {
+.progress-container .progress-bar {
     height: 100%;
     background: var(--primary);
     transition: width 0.3s ease;
+    width: 0%;
 }
 
 .progress-text {
     text-align: center;
     color: var(--gray-500);
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
 

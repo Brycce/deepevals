@@ -92,8 +92,10 @@
     <div class="modal-content">
         <h2>Generating...</h2>
         <p>Running models in parallel. This may take a minute.</p>
-        <div id="generation-status"></div>
-        <div class="spinner"></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <p id="progress-text">0 / 0 complete</p>
     </div>
 </div>
 {% endblock %}
@@ -105,7 +107,8 @@ const profileTextarea = document.getElementById('profile-textarea');
 const profileFile = document.getElementById('profile-file');
 const profileNameEl = document.getElementById('profile-name');
 const statusModal = document.getElementById('status-modal');
-const generationStatus = document.getElementById('generation-status');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
 
 // JSON validation and fixing
 const validateBtn = document.getElementById('validate-json');
@@ -285,17 +288,19 @@ async function pollStatus(sessionId) {
         const response = await fetch(`/api/evaluations/${sessionId}/status`);
         const status = await response.json();
 
-        // Update status display
-        generationStatus.innerHTML = status.generations
-            .map(g => `<div class="gen-status ${g.status}">${g.display_label}: ${g.status}</div>`)
-            .join('');
-
-        // Wait until ALL generations are done (completed or failed)
-        const allDone = status.generations.every(g =>
+        // Count completed/failed generations
+        const total = status.generations.length;
+        const done = status.generations.filter(g =>
             g.status === 'completed' || g.status === 'failed'
-        );
+        ).length;
 
-        if (allDone && status.generations.length > 0) {
+        // Update progress bar
+        const percent = total > 0 ? (done / total) * 100 : 0;
+        progressBar.style.width = percent + '%';
+        progressText.textContent = `${done} / ${total} complete`;
+
+        // Wait until ALL generations are done
+        if (done === total && total > 0) {
             break;
         }
 
