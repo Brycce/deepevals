@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 from app.config import settings
 import os
 
@@ -27,9 +28,18 @@ async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_
 
 
 async def init_db():
-    """Create all database tables."""
+    """Create all database tables and run migrations."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Migration: Add run_number column if it doesn't exist
+        try:
+            await conn.execute(
+                text("ALTER TABLE generations ADD COLUMN IF NOT EXISTS run_number INTEGER DEFAULT 1")
+            )
+        except Exception as e:
+            # Column might already exist or DB doesn't support IF NOT EXISTS
+            print(f"Migration note: {e}")
 
 
 async def get_db():
