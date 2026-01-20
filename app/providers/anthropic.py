@@ -17,7 +17,10 @@ class AnthropicProvider(ModelProvider):
     def __init__(self):
         self.api_key = settings.ANTHROPIC_API_KEY
         if self.api_key:
-            self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
+            self.client = anthropic.AsyncAnthropic(
+                api_key=self.api_key,
+                timeout=120.0  # 2 minute timeout
+            )
         else:
             self.client = None
 
