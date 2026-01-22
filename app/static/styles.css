@@ -855,59 +855,122 @@ details summary {
 .arena-comparison {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
 .arena-output {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 300px);
+    height: calc(100vh - 220px);
+    min-height: 500px;
     overflow: hidden;
+    padding: 1rem;
+}
+
+.arena-output.card {
+    padding: 1rem;
 }
 
 .arena-output-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 1rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--gray-200);
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     flex-shrink: 0;
 }
 
 .arena-output-header h2 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .arena-output-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1rem;
+    padding: 1.5rem;
     background: var(--gray-50);
     border-radius: 0.5rem;
-    line-height: 1.7;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.arena-output-content h1 {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.arena-output-content h2 {
+    font-size: 1.1rem;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.arena-output-content h3 {
+    font-size: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.arena-output-content p {
+    margin-bottom: 0.75rem;
+}
+
+.arena-output-content ul, .arena-output-content ol {
+    margin-bottom: 0.75rem;
+    padding-left: 1.25rem;
+}
+
+.arena-output-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+    font-size: 0.8rem;
+}
+
+.arena-output-content th,
+.arena-output-content td {
+    border: 1px solid var(--gray-200);
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+}
+
+.arena-output-content th {
+    background: var(--gray-100);
+    font-weight: 600;
 }
 
 /* Vote Panel */
 .arena-vote-panel {
     text-align: center;
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid var(--gray-200);
+    margin: 0 -2rem -2rem -2rem;
+    padding: 1rem 2rem;
 }
 
 .arena-vote-panel h3 {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
 }
 
 .vote-buttons {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     justify-content: center;
 }
 
 .vote-btn {
-    min-width: 120px;
+    min-width: 100px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
 }
 
 /* Reveal State */
@@ -949,20 +1012,28 @@ details summary {
     background: white;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    max-height: 500px;
+    padding: 1rem;
+    max-height: calc(100vh - 350px);
+    min-height: 400px;
     overflow-y: auto;
 }
 
 .arena-output-revealed .arena-output-header {
     border-bottom: 1px solid var(--gray-200);
-    padding-bottom: 0.75rem;
-    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .arena-output-revealed .arena-output-header h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
+}
+
+.arena-output-revealed .arena-output-content {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    padding: 0;
+    background: transparent;
 }
 
 .elo-change {
