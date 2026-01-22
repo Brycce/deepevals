@@ -1037,7 +1037,21 @@ details summary {
 }
 
 .reveal-actions {
+    display: flex;
+    gap: 0.5rem;
     margin-top: 0.25rem;
+}
+
+.vote-btn.vote-back {
+    background: transparent;
+    color: var(--gray-500);
+    border-color: transparent;
+    font-size: 0.7rem;
+}
+
+.vote-btn.vote-back:hover {
+    color: var(--gray-700);
+    background: var(--gray-100);
 }
 
 /* Arena Panels */

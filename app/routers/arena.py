@@ -138,6 +138,21 @@ async def submit_vote(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/match/{match_id}/full")
+async def get_match_full(match_id: str, db: AsyncSession = Depends(get_db)):
+    """Get full match data including profile_data (for creating new matches)."""
+    match = await arena_service.get_match(db, match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    return {
+        "id": match.id,
+        "profile_name": match.profile_name,
+        "profile_data": match.profile_data,
+        "chunk_type": match.chunk_type,
+    }
+
+
 @router.get("/match/{match_id}/reveal", response_model=ArenaMatchRevealed)
 async def reveal_match(match_id: str, db: AsyncSession = Depends(get_db)):
     """Reveal model identities after voting."""

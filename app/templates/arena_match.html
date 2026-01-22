@@ -70,7 +70,8 @@
                     <span id="reveal-result"></span>
                 </div>
                 <div class="reveal-actions">
-                    <a href="/arena" class="vote-btn vote-new">New Match</a>
+                    <button class="vote-btn vote-new" id="new-match-btn">New Match</button>
+                    <a href="/arena" class="vote-btn vote-back">Leaderboard</a>
                 </div>
             </div>
             <div class="sticky-panel-header right" id="panel-b-reveal">
@@ -100,6 +101,7 @@ const matchId = '{{ match_id }}';
 let voteResult = null;
 let syncScroll = true;
 let isScrolling = false;
+let currentMatchData = null; // Store match data for creating new matches
 
 function renderMarkdown(text) {
     if (!text) return '';
@@ -148,6 +150,51 @@ async function loadMatch() {
     } catch (e) {
         console.error('Error loading match:', e);
         return null;
+    }
+}
+
+async function loadFullMatchData() {
+    // Load the full match data including profile_data from the session endpoint
+    try {
+        const response = await fetch(`/api/arena/match/${matchId}/full`);
+        if (response.ok) {
+            currentMatchData = await response.json();
+        }
+    } catch (e) {
+        console.error('Error loading full match data:', e);
+    }
+}
+
+async function createNewMatch() {
+    if (!currentMatchData) {
+        window.location.href = '/arena';
+        return;
+    }
+
+    const btn = document.getElementById('new-match-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+        const response = await fetch('/api/arena/match', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                profile_data: currentMatchData.profile_data,
+                chunk_type: currentMatchData.chunk_type,
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create match');
+        }
+
+        const newMatch = await response.json();
+        window.location.href = `/arena/match/${newMatch.id}`;
+    } catch (e) {
+        alert('Error: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'New Match';
     }
 }
 
@@ -285,6 +332,12 @@ async function showRevealState() {
 
     document.getElementById('reveal-state').classList.remove('hidden');
     setupSyncScroll();
+
+    // Load full match data for creating new matches
+    await loadFullMatchData();
+
+    // Set up new match button
+    document.getElementById('new-match-btn').addEventListener('click', createNewMatch);
 }
 
 async function init() {
