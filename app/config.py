@@ -54,6 +54,7 @@ AVAILABLE_MODELS = [
 
 # Available chunk types for evaluation
 CHUNK_TYPES = [
+    {"id": "full-report", "name": "Full Report", "description": "Complete personality profile (all sections)"},
     {"id": "personality", "name": "Personality Architecture", "description": "Big Five analysis"},
     {"id": "emotional", "name": "Emotional World", "description": "Attachment, emotion regulation, conflict"},
     {"id": "values", "name": "Values & Motivation", "description": "Core values, career fit, motivation"},

@@ -128,9 +128,12 @@ class GenerationService:
             session.profile_data, session.chunk_type
         )
 
+        # Use more tokens for full report
+        max_tokens = 16000 if session.chunk_type == "full-report" else 4000
+
         # Run all generations in parallel - each with its own DB session
         tasks = [
-            self._run_single_generation_isolated(gen_id, system_prompt, user_prompt, async_session_maker)
+            self._run_single_generation_isolated(gen_id, system_prompt, user_prompt, max_tokens, async_session_maker)
             for gen_id in generation_ids
         ]
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -145,6 +148,7 @@ class GenerationService:
         generation_id: str,
         system_prompt: str,
         user_prompt: str,
+        max_tokens: int,
         session_maker,
     ) -> None:
         """Run a single model generation with its own DB session."""
@@ -173,6 +177,7 @@ class GenerationService:
                     model_id=generation.model_id,
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
+                    max_tokens=max_tokens,
                 )
                 print(f"Got result for {generation.model_display_name}: {len(api_result.output_text) if api_result.output_text else 0} chars, error={api_result.error}")
 

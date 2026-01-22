@@ -10,6 +10,51 @@ class PromptService:
 
     # Chunk-specific instructions (what each section should contain)
     CHUNK_INSTRUCTIONS = {
+        "full-report": """Write the COMPLETE personality profile report with ALL sections in order:
+
+## 1. Executive Summary
+A compelling opening that captures who this person is, their dominant personality patterns, key strengths, primary growth edges, and a preview of deeper insights.
+
+## 2. Personality Architecture (Big Five)
+For EACH of the five traits (Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism):
+- What their score means in practical terms
+- Concrete examples of how this shows up
+- A "Gifts & Challenges" table for the trait
+
+## 3. Emotional World
+- **Attachment Style** - How their attachment patterns affect relationships
+- **Emotion Regulation** - Their DERS profile and handling difficult emotions
+- **Rejection Sensitivity** - Sensitivity to rejection and triggers
+- **Conflict Style** - How they handle disagreements
+
+## 4. Values & Motivation
+- **Core Values** (PVQ-21) - Top values and what drives them
+- **Career Interests** (RIASEC) - Occupational interests and ideal work environment
+- **Work Motivation** (WEIMS) - Intrinsic vs extrinsic motivation
+
+## 5. Superpowers & Kryptonite
+- **Superpowers** - Unique strengths from trait COMBINATIONS
+- **Kryptonite** - Blind spots and situations that trip them up
+
+## 6. Best Fit: Work
+- Ideal work environment, specific roles that fit, situations to avoid, working with others
+
+## 7. Best Fit: Romantic
+- What they need in a partner, relationship strengths, friction points, ideal partner profile
+
+## 8. Best Fit: Friends
+- Friendship style, what they need from friends, friend types that work, social energy
+
+## 9. Wellbeing
+- Mental health screening indicators (GAD-7, PHQ-9, etc.) with severity levels
+- Life satisfaction and PERMA wellbeing scores
+- IMPORTANT: Use "screening indicates" language, not diagnoses
+
+## 10. Path Forward
+- Key insights, immediate actions, longer-term focus, resources
+
+Generate ALL sections as one complete, cohesive report. Make it personal and specific to their data.""",
+
         "overview": """Write an Executive Summary section for this personality profile.
 
 Include:
