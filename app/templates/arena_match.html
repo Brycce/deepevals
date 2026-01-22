@@ -70,7 +70,7 @@
                     <span id="reveal-result"></span>
                 </div>
                 <div class="reveal-actions">
-                    <button class="vote-btn vote-new" id="new-match-btn">New Match</button>
+                    <button class="vote-btn vote-new" id="new-match-btn" onclick="createNewMatch()">New Match</button>
                     <a href="/arena" class="vote-btn vote-back">Leaderboard</a>
                 </div>
             </div>
@@ -334,10 +334,7 @@ async function showRevealState() {
     setupSyncScroll();
 
     // Load full match data for creating new matches
-    await loadFullMatchData();
-
-    // Set up new match button
-    document.getElementById('new-match-btn').addEventListener('click', createNewMatch);
+    loadFullMatchData();
 }
 
 async function init() {
@@ -346,6 +343,9 @@ async function init() {
         document.getElementById('match-info').textContent = 'Match not found';
         return;
     }
+
+    // Load full match data early for new match button
+    loadFullMatchData();
 
     if (match.status === 'completed') {
         showRevealState();
