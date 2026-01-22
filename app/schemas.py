@@ -86,3 +86,59 @@ class AnalyticsSummary(BaseModel):
     total_generations: int
     total_ratings: int
     model_stats: List[Dict[str, Any]]  # Per-model statistics
+
+
+# Arena Mode schemas
+class ArenaMatchCreate(BaseModel):
+    """Request to start a new arena match."""
+    profile_data: Dict[str, Any]
+    chunk_type: str
+
+
+class ArenaMatchBlind(BaseModel):
+    """Match details for display (model identities hidden)."""
+    id: str
+    created_at: datetime
+    profile_name: str
+    chunk_type: str
+    status: str
+    output_a: Optional[str]  # Model A's output
+    output_b: Optional[str]  # Model B's output
+
+
+class ArenaMatchRevealed(BaseModel):
+    """Match details with model identities revealed."""
+    id: str
+    created_at: datetime
+    profile_name: str
+    chunk_type: str
+    status: str
+    output_a: Optional[str]
+    output_b: Optional[str]
+    model_a_id: str
+    model_a_display_name: str
+    model_b_id: str
+    model_b_display_name: str
+    winner: Optional[str]
+    completed_at: Optional[datetime]
+
+
+class ArenaVoteRequest(BaseModel):
+    """Submit a vote for a match winner."""
+    winner: str  # "a", "b", or "tie"
+
+
+class ArenaLeaderboardEntry(BaseModel):
+    """Single entry in the leaderboard."""
+    model_id: str
+    model_display_name: str
+    elo_rating: int
+    matches_played: int
+    wins: int
+    losses: int
+    ties: int
+
+
+class ArenaLeaderboardResponse(BaseModel):
+    """Leaderboard data response."""
+    entries: List[ArenaLeaderboardEntry]

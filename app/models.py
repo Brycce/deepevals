@@ -64,3 +64,36 @@ class Rating(Base):
 
     # Relationships
     generation = relationship("Generation", back_populates="rating")
+
+
+class ArenaModel(Base):
+    """Tracks Elo ratings for each model in Arena Mode."""
+    __tablename__ = "arena_models"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    model_id = Column(String(100), nullable=False, unique=True)  # e.g., "claude-sonnet-4-5-20250929"
+    model_display_name = Column(String(100), nullable=False)  # e.g., "Claude Sonnet 4.5"
+    elo_rating = Column(Integer, default=1500)
+    matches_played = Column(Integer, default=0)
+    wins = Column(Integer, default=0)
+    losses = Column(Integer, default=0)
+    ties = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ArenaMatch(Base):
+    """Individual head-to-head matches in Arena Mode."""
+    __tablename__ = "arena_matches"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    profile_name = Column(String(255), nullable=False)
+    profile_data = Column(JSON, nullable=False)
+    chunk_type = Column(String(100), nullable=False)
+    model_a_id = Column(String(100), nullable=False)  # First model ID
+    model_a_output = Column(Text, nullable=True)  # First model's output
+    model_b_id = Column(String(100), nullable=False)  # Second model ID
+    model_b_output = Column(Text, nullable=True)  # Second model's output
+    winner = Column(String(10), nullable=True)  # "a", "b", or "tie" (null if not judged)
+    status = Column(String(50), default="pending")  # pending, generating, ready, completed
+    completed_at = Column(DateTime, nullable=True)

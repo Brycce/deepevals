@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Arena Match - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Arena Match</h1>
+    <p id="match-info">Loading match...</p>
+</div>
+
+<!-- Generating State -->
+<div id="generating-state" class="card hidden">
+    <div class="generating-content">
+        <h2>Generating outputs...</h2>
+        <p>Two models are generating their responses. This may take a minute.</p>
+        <div class="spinner"></div>
+        <div id="generation-status" class="generation-status"></div>
+    </div>
+</div>
+
+<!-- Voting State -->
+<div id="voting-state" class="hidden">
+    <div class="arena-comparison">
+        <div class="arena-output card">
+            <div class="arena-output-header">
+                <h2>Option A</h2>
+            </div>
+            <div class="arena-output-content markdown-body" id="output-a">
+                Loading...
+            </div>
+        </div>
+
+        <div class="arena-output card">
+            <div class="arena-output-header">
+                <h2>Option B</h2>
+            </div>
+            <div class="arena-output-content markdown-body" id="output-b">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <div class="arena-vote-panel card">
+        <h3>Which output is better?</h3>
+        <div class="vote-buttons">
+            <button class="btn btn-primary btn-lg vote-btn" data-winner="a">A Wins</button>
+            <button class="btn btn-secondary btn-lg vote-btn" data-winner="tie">Tie</button>
+            <button class="btn btn-primary btn-lg vote-btn" data-winner="b">B Wins</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reveal State -->
+<div id="reveal-state" class="hidden">
+    <div class="arena-reveal card">
+        <h2>Results</h2>
+        <div class="reveal-result" id="reveal-result"></div>
+
+        <div class="arena-comparison">
+            <div class="arena-output-revealed">
+                <div class="arena-output-header">
+                    <h3 id="reveal-model-a">Model A</h3>
+                    <span class="elo-change" id="elo-change-a"></span>
+                </div>
+                <div class="arena-output-content markdown-body" id="reveal-output-a">
+                </div>
+            </div>
+
+            <div class="arena-output-revealed">
+                <div class="arena-output-header">
+                    <h3 id="reveal-model-b">Model B</h3>
+                    <span class="elo-change" id="elo-change-b"></span>
+                </div>
+                <div class="arena-output-content markdown-body" id="reveal-output-b">
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal-actions">
+            <a href="/arena" class="btn btn-primary">New Match</a>
+            <a href="/arena" class="btn btn-secondary">View Leaderboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const matchId = '{{ match_id }}';
+let voteResult = null;
+
+// Simple markdown to HTML (basic)
+function renderMarkdown(text) {
+    if (!text) return '';
+    // Use the server's markdown filter via innerHTML assignment
+    // For now, just preserve formatting
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>');
+}
+
+async function loadMatch() {
+    try {
+        const response = await fetch(`/api/arena/match/${matchId}`);
+        if (!response.ok) {
+            throw new Error('Match not found');
+        }
+        const match = await response.json();
+        return match;
+    } catch (e) {
+        console.error('Error loading match:', e);
+        return null;
+    }
+}
+
+async function pollForReady() {
+    document.getElementById('generating-state').classList.remove('hidden');
+
+    while (true) {
+        const response = await fetch(`/api/arena/match/${matchId}/status`);
+        const status = await response.json();
+
+        // Update status display
+        const statusEl = document.getElementById('generation-status');
+        statusEl.innerHTML = `
+            <div>Option A: ${status.has_output_a ? '<span class="text-success">Ready</span>' : '<span class="text-warning">Generating...</span>'}</div>
+            <div>Option B: ${status.has_output_b ? '<span class="text-success">Ready</span>' : '<span class="text-warning">Generating...</span>'}</div>
+        `;
+
+        if (status.status === 'ready' || status.status === 'completed') {
+            break;
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    document.getElementById('generating-state').classList.add('hidden');
+    showVotingState();
+}
+
+async function showVotingState() {
+    const match = await loadMatch();
+    if (!match) return;
+
+    if (match.status === 'completed') {
+        // Already voted, show reveal
+        showRevealState();
+        return;
+    }
+
+    document.getElementById('match-info').textContent =
+        `Profile: ${match.profile_name} | Section: ${match.chunk_type}`;
+
+    document.getElementById('output-a').innerHTML = renderMarkdown(match.output_a);
+    document.getElementById('output-b').innerHTML = renderMarkdown(match.output_b);
+
+    document.getElementById('voting-state').classList.remove('hidden');
+
+    // Set up vote buttons
+    document.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const winner = btn.dataset.winner;
+            await submitVote(winner);
+        });
+    });
+}
+
+async function submitVote(winner) {
+    // Disable buttons
+    document.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.disabled = true;
+    });
+
+    try {
+        const response = await fetch(`/api/arena/match/${matchId}/vote`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ winner })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to submit vote');
+        }
+
+        voteResult = await response.json();
+        showRevealState();
+
+    } catch (e) {
+        alert('Error: ' + e.message);
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            btn.disabled = false;
+        });
+    }
+}
+
+async function showRevealState() {
+    document.getElementById('voting-state').classList.add('hidden');
+
+    // Get revealed match data
+    const response = await fetch(`/api/arena/match/${matchId}/reveal`);
+    if (!response.ok) {
+        alert('Error loading results');
+        return;
+    }
+
+    const revealed = await response.json();
+
+    // Update info
+    document.getElementById('match-info').textContent =
+        `Profile: ${revealed.profile_name} | Section: ${revealed.chunk_type}`;
+
+    // Show winner
+    const resultEl = document.getElementById('reveal-result');
+    let winnerText = '';
+    if (revealed.winner === 'a') {
+        winnerText = `<span class="winner-badge">Winner: ${revealed.model_a_display_name}</span>`;
+    } else if (revealed.winner === 'b') {
+        winnerText = `<span class="winner-badge">Winner: ${revealed.model_b_display_name}</span>`;
+    } else {
+        winnerText = '<span class="tie-badge">Tie</span>';
+    }
+    resultEl.innerHTML = winnerText;
+
+    // Model names
+    document.getElementById('reveal-model-a').textContent = revealed.model_a_display_name;
+    document.getElementById('reveal-model-b').textContent = revealed.model_b_display_name;
+
+    // Elo changes (if we have voteResult)
+    if (voteResult) {
+        const changeA = voteResult.model_a.change;
+        const changeB = voteResult.model_b.change;
+        document.getElementById('elo-change-a').innerHTML =
+            `<span class="${changeA >= 0 ? 'text-success' : 'text-danger'}">${changeA >= 0 ? '+' : ''}${changeA}</span> (${voteResult.model_a.new_elo})`;
+        document.getElementById('elo-change-b').innerHTML =
+            `<span class="${changeB >= 0 ? 'text-success' : 'text-danger'}">${changeB >= 0 ? '+' : ''}${changeB}</span> (${voteResult.model_b.new_elo})`;
+    }
+
+    // Outputs
+    document.getElementById('reveal-output-a').innerHTML = renderMarkdown(revealed.output_a);
+    document.getElementById('reveal-output-b').innerHTML = renderMarkdown(revealed.output_b);
+
+    document.getElementById('reveal-state').classList.remove('hidden');
+}
+
+// Initialize
+async function init() {
+    const match = await loadMatch();
+    if (!match) {
+        document.getElementById('match-info').textContent = 'Match not found';
+        return;
+    }
+
+    if (match.status === 'completed') {
+        showRevealState();
+    } else if (match.status === 'ready') {
+        showVotingState();
+    } else {
+        pollForReady();
+    }
+}
+
+init();
+{% endblock %}

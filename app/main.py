@@ -8,8 +8,9 @@ import markdown
 import os
 
 from app.database import init_db
-from app.routers import evaluations_router, ratings_router
+from app.routers import evaluations_router, ratings_router, arena_router
 from app.services.generation import GenerationService
+from app.services.arena import ArenaService
 from app.config import CHUNK_TYPES
 
 # Track if DB is initialized (for serverless)
@@ -48,9 +49,11 @@ templates = Jinja2Templates(directory=templates_path)
 # Include API routers
 app.include_router(evaluations_router)
 app.include_router(ratings_router)
+app.include_router(arena_router)
 
 # Services
 generation_service = GenerationService()
+arena_service = ArenaService()
 
 
 def render_markdown(text: str) -> str:
@@ -117,6 +120,32 @@ async def analytics_page(request: Request):
     return templates.TemplateResponse(
         "analytics.html",
         {"request": request}
+    )
+
+
+@app.get("/arena", response_class=HTMLResponse)
+async def arena_page(request: Request):
+    """Arena mode - head-to-head model comparison."""
+    models = arena_service.get_available_models()
+    return templates.TemplateResponse(
+        "arena.html",
+        {
+            "request": request,
+            "models": models,
+            "chunk_types": CHUNK_TYPES,
+        }
+    )
+
+
+@app.get("/arena/match/{match_id}", response_class=HTMLResponse)
+async def arena_match_page(request: Request, match_id: str):
+    """Arena match page for side-by-side comparison."""
+    return templates.TemplateResponse(
+        "arena_match.html",
+        {
+            "request": request,
+            "match_id": match_id,
+        }
     )
 
 

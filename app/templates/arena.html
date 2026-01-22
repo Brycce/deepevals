@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Arena Mode - DeepEvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Arena Mode</h1>
+    <p>Head-to-head blind comparison between two randomly selected models</p>
+</div>
+
+<div class="arena-layout">
+    <div class="arena-main">
+        <div class="card">
+            <h2>Leaderboard</h2>
+            <div id="leaderboard-container">
+                <p class="loading">Loading leaderboard...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="arena-sidebar">
+        <form id="arena-form" class="card">
+            <h2>Start New Match</h2>
+
+            <div class="form-section">
+                <h3>Profile</h3>
+                <p class="help-text">Using: <strong id="profile-name">Andrew Wilkinson</strong></p>
+                <input type="hidden" id="profile-input" name="profile_data" />
+                <details>
+                    <summary>View/Edit Profile JSON</summary>
+                    <textarea id="profile-textarea" rows="6"></textarea>
+                    <div class="json-tools">
+                        <button type="button" id="fix-json" class="btn btn-secondary btn-sm">Fix & Format</button>
+                        <input type="file" id="profile-file" accept=".json" style="display:inline-block; margin-left: 1rem;" />
+                        <span id="json-status"></span>
+                    </div>
+                </details>
+            </div>
+
+            <div class="form-section">
+                <h3>Report Section</h3>
+                <div class="form-group">
+                    <select id="chunk-type" name="chunk_type" required>
+                        {% for chunk in chunk_types %}
+                        <option value="{{ chunk.id }}">{{ chunk.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg" id="start-btn">Start Match</button>
+            </div>
+
+            {% if not models or models|length < 2 %}
+            <div class="alert alert-warning">
+                Need at least 2 models configured for arena mode. Please add API keys in .env.
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div id="status-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2>Setting up match...</h2>
+        <p>Selecting models and starting generations.</p>
+        <div class="spinner"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+const profileInput = document.getElementById('profile-input');
+const profileTextarea = document.getElementById('profile-textarea');
+const profileFile = document.getElementById('profile-file');
+const profileNameEl = document.getElementById('profile-name');
+const statusModal = document.getElementById('status-modal');
+const fixBtn = document.getElementById('fix-json');
+const jsonStatus = document.getElementById('json-status');
+
+// Load leaderboard
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/arena/leaderboard');
+        const data = await response.json();
+        renderLeaderboard(data.entries);
+    } catch (e) {
+        document.getElementById('leaderboard-container').innerHTML =
+            '<p class="error">Failed to load leaderboard</p>';
+    }
+}
+
+function renderLeaderboard(entries) {
+    if (entries.length === 0) {
+        document.getElementById('leaderboard-container').innerHTML =
+            '<p class="help-text">No matches played yet. Start a match to see rankings!</p>';
+        return;
+    }
+
+    let html = `
+        <table class="results-table leaderboard-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Model</th>
+                    <th>Elo</th>
+                    <th>W</th>
+                    <th>L</th>
+                    <th>T</th>
+                    <th>Matches</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    entries.forEach((entry, index) => {
+        const rank = index + 1;
+        const medalClass = rank <= 3 ? `rank-${rank}` : '';
+        html += `
+            <tr class="${medalClass}">
+                <td class="rank-cell">${rank}</td>
+                <td>${entry.model_display_name}</td>
+                <td class="elo-cell">${entry.elo_rating}</td>
+                <td class="text-success">${entry.wins}</td>
+                <td class="text-danger">${entry.losses}</td>
+                <td>${entry.ties}</td>
+                <td>${entry.matches_played}</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('leaderboard-container').innerHTML = html;
+}
+
+// Load default profile
+async function loadDefaultProfile() {
+    try {
+        const response = await fetch('/sample_profiles/andrew_wilkinson.json');
+        if (response.ok) {
+            const data = await response.json();
+            const jsonStr = JSON.stringify(data, null, 2);
+            profileInput.value = jsonStr;
+            profileTextarea.value = jsonStr;
+            profileNameEl.textContent = data.name || 'Unknown';
+        }
+    } catch (e) {
+        console.error('Failed to load default profile', e);
+    }
+}
+
+// Sync textarea to hidden input
+profileTextarea.addEventListener('input', () => {
+    profileInput.value = profileTextarea.value;
+    try {
+        const data = JSON.parse(profileTextarea.value);
+        profileNameEl.textContent = data.name || 'Unknown';
+    } catch (e) {}
+});
+
+function fixJsonString(str) {
+    let result = str;
+    result = result.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        switch (char) {
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            default: return '';
+        }
+    });
+    result = result.replace(/,(\s*[}\]])/g, '$1');
+    result = result.replace(/,\s*,/g, ',');
+    result = result.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+    result = result.replace(/'/g, '"');
+    result = result.replace(/^\uFEFF/, '');
+    return JSON.stringify(JSON.parse(result), null, 2);
+}
+
+fixBtn.addEventListener('click', () => {
+    try {
+        profileTextarea.value = fixJsonString(profileTextarea.value);
+        profileInput.value = profileTextarea.value;
+        const data = JSON.parse(profileTextarea.value);
+        profileNameEl.textContent = data.name || 'Unknown';
+        jsonStatus.textContent = ' Fixed';
+        jsonStatus.style.color = '#22c55e';
+    } catch (e) {
+        jsonStatus.textContent = ' Error: ' + e.message;
+        jsonStatus.style.color = '#ef4444';
+    }
+});
+
+// Handle file upload
+profileFile.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const text = await file.text();
+        profileTextarea.value = text;
+        profileInput.value = text;
+        try {
+            const data = JSON.parse(text);
+            profileNameEl.textContent = data.name || 'Unknown';
+        } catch (e) {}
+    }
+});
+
+// Form submission
+document.getElementById('arena-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate profile JSON
+    let profileData;
+    const jsonValue = profileInput.value || profileTextarea.value;
+    try {
+        profileData = JSON.parse(jsonValue);
+    } catch (e) {
+        alert('Invalid JSON in profile data');
+        return;
+    }
+
+    const chunkType = document.getElementById('chunk-type').value;
+
+    // Show modal
+    statusModal.classList.remove('hidden');
+
+    try {
+        // Create match
+        const response = await fetch('/api/arena/match', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                profile_data: profileData,
+                chunk_type: chunkType,
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to create match');
+        }
+
+        const match = await response.json();
+
+        // Redirect to match page
+        window.location.href = `/arena/match/${match.id}`;
+
+    } catch (e) {
+        statusModal.classList.add('hidden');
+        alert('Error: ' + e.message);
+    }
+});
+
+// Initialize
+loadLeaderboard();
+loadDefaultProfile();
+{% endblock %}
