@@ -57,8 +57,21 @@ async def create_match(
         chunk_type=request.chunk_type,
     )
 
-    # Start generations in background
-    background_tasks.add_task(run_match_generations_task, match.id)
+    # Start generations in background (if not already ready from cache)
+    if match.status != "ready":
+        background_tasks.add_task(
+            run_match_generations_task,
+            match.id,
+            request.profile_data,
+            request.chunk_type
+        )
+    else:
+        # Match already ready, just pre-generate remaining models
+        background_tasks.add_task(
+            arena_service.pregenerate_remaining_models,
+            request.profile_data,
+            request.chunk_type
+        )
 
     return ArenaMatchBlind(
         id=match.id,
@@ -71,13 +84,17 @@ async def create_match(
     )
 
 
-async def run_match_generations_task(match_id: str):
-    """Background task to run match generations."""
+async def run_match_generations_task(match_id: str, profile_data: dict = None, chunk_type: str = None):
+    """Background task to run match generations and pre-generate remaining models."""
     from app.database import async_session_maker
 
     try:
         async with async_session_maker() as db:
             await arena_service.run_match_generations(db, match_id)
+
+        # After match is ready, pre-generate outputs for remaining models in background
+        if profile_data and chunk_type:
+            await arena_service.pregenerate_remaining_models(profile_data, chunk_type)
     except Exception as e:
         print(f"Arena match generation error: {e}")
         import traceback

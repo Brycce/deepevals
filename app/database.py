@@ -38,7 +38,14 @@ async def init_db():
                 text("ALTER TABLE generations ADD COLUMN IF NOT EXISTS run_number INTEGER DEFAULT 1")
             )
         except Exception as e:
-            # Column might already exist or DB doesn't support IF NOT EXISTS
+            print(f"Migration note: {e}")
+
+        # Migration: Add profile_hash column to arena_matches
+        try:
+            await conn.execute(
+                text("ALTER TABLE arena_matches ADD COLUMN IF NOT EXISTS profile_hash VARCHAR(64)")
+            )
+        except Exception as e:
             print(f"Migration note: {e}")
 
 

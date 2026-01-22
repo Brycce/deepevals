@@ -89,6 +89,7 @@ class ArenaMatch(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     profile_name = Column(String(255), nullable=False)
     profile_data = Column(JSON, nullable=False)
+    profile_hash = Column(String(64), nullable=True)  # Hash for cache lookup
     chunk_type = Column(String(100), nullable=False)
     model_a_id = Column(String(100), nullable=False)  # First model ID
     model_a_output = Column(Text, nullable=True)  # First model's output
@@ -97,3 +98,21 @@ class ArenaMatch(Base):
     winner = Column(String(10), nullable=True)  # "a", "b", or "tie" (null if not judged)
     status = Column(String(50), default="pending")  # pending, generating, ready, completed
     completed_at = Column(DateTime, nullable=True)
+
+
+class ArenaOutput(Base):
+    """Cached model outputs for arena mode - reused across matches."""
+    __tablename__ = "arena_outputs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    profile_hash = Column(String(64), nullable=False)  # Hash of profile_data
+    chunk_type = Column(String(100), nullable=False)
+    model_id = Column(String(100), nullable=False)
+    output_text = Column(Text, nullable=True)
+    status = Column(String(50), default="pending")  # pending, generating, completed, failed
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        # Unique constraint: one output per profile+chunk+model
+        {"sqlite_autoincrement": True},
+    )

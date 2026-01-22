@@ -1,29 +1,21 @@
 import asyncio
+import hashlib
+import json
 import random
 import re
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from datetime import datetime
 
-from app.models import ArenaModel, ArenaMatch
+from app.models import ArenaModel, ArenaMatch, ArenaOutput
 from app.providers import AnthropicProvider, OpenAIProvider, GroqProvider
 from app.services.prompts import PromptService
 from app.config import AVAILABLE_MODELS
 
 
 def calculate_elo(rating_a: int, rating_b: int, winner: str, k: int = 32) -> Tuple[int, int]:
-    """Calculate new Elo ratings after a match.
-
-    Args:
-        rating_a: Current Elo rating of model A
-        rating_b: Current Elo rating of model B
-        winner: "a", "b", or "tie"
-        k: K-factor (default 32)
-
-    Returns:
-        Tuple of (new_rating_a, new_rating_b)
-    """
+    """Calculate new Elo ratings after a match."""
     expected_a = 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
     expected_b = 1 - expected_a
 
@@ -44,10 +36,16 @@ def strip_thinking_tokens(text: str) -> str:
     """Remove thinking/reasoning tokens from model output."""
     if not text:
         return text
-    # Strip <think>...</think> and <thinking>...</thinking> tags
     text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL | re.IGNORECASE)
     return text.strip()
+
+
+def hash_profile(profile_data: Dict[str, Any]) -> str:
+    """Create a consistent hash of profile data for cache lookup."""
+    # Sort keys for consistent hashing
+    json_str = json.dumps(profile_data, sort_keys=True)
+    return hashlib.sha256(json_str.encode()).hexdigest()[:32]
 
 
 class ArenaService:
@@ -81,14 +79,12 @@ class ArenaService:
         available_models = self.get_available_models()
 
         for model in available_models:
-            # Check if model exists
             result = await db.execute(
                 select(ArenaModel).where(ArenaModel.model_id == model["id"])
             )
             existing = result.scalar_one_or_none()
 
             if not existing:
-                # Create new arena model record
                 arena_model = ArenaModel(
                     model_id=model["id"],
                     model_display_name=model["display_name"],
@@ -104,7 +100,6 @@ class ArenaService:
 
     async def get_leaderboard(self, db: AsyncSession) -> List[Dict[str, Any]]:
         """Get the current leaderboard sorted by Elo rating."""
-        # Ensure all models exist first
         await self.ensure_arena_models_exist(db)
 
         result = await db.execute(
@@ -125,16 +120,128 @@ class ArenaService:
             for m in models
         ]
 
-    def select_random_pair(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """Select two random models for a matchup."""
-        available_models = self.get_available_models()
+    async def get_cached_output(
+        self, db: AsyncSession, profile_hash: str, chunk_type: str, model_id: str
+    ) -> Optional[ArenaOutput]:
+        """Get cached output for a model if it exists and is completed."""
+        result = await db.execute(
+            select(ArenaOutput).where(
+                and_(
+                    ArenaOutput.profile_hash == profile_hash,
+                    ArenaOutput.chunk_type == chunk_type,
+                    ArenaOutput.model_id == model_id,
+                    ArenaOutput.status == "completed",
+                )
+            )
+        )
+        return result.scalar_one_or_none()
 
+    async def get_cached_outputs_for_profile(
+        self, db: AsyncSession, profile_hash: str, chunk_type: str
+    ) -> Dict[str, ArenaOutput]:
+        """Get all cached outputs for a profile/chunk combination."""
+        result = await db.execute(
+            select(ArenaOutput).where(
+                and_(
+                    ArenaOutput.profile_hash == profile_hash,
+                    ArenaOutput.chunk_type == chunk_type,
+                    ArenaOutput.status == "completed",
+                )
+            )
+        )
+        outputs = result.scalars().all()
+        return {o.model_id: o for o in outputs}
+
+    async def get_models_needing_generation(
+        self, db: AsyncSession, profile_hash: str, chunk_type: str
+    ) -> List[str]:
+        """Get model IDs that don't have cached outputs yet."""
+        available_models = self.get_available_models()
+        available_ids = {m["id"] for m in available_models}
+
+        # Get models that already have outputs (completed or generating)
+        result = await db.execute(
+            select(ArenaOutput.model_id).where(
+                and_(
+                    ArenaOutput.profile_hash == profile_hash,
+                    ArenaOutput.chunk_type == chunk_type,
+                    ArenaOutput.status.in_(["completed", "generating"]),
+                )
+            )
+        )
+        existing_ids = {row[0] for row in result.fetchall()}
+
+        return list(available_ids - existing_ids)
+
+    async def select_pair_for_match(
+        self, db: AsyncSession, profile_hash: str, chunk_type: str,
+        exclude_pairs: Optional[List[Tuple[str, str]]] = None
+    ) -> Tuple[str, str]:
+        """Select two models for a match, preferring those with cached outputs."""
+        available_models = self.get_available_models()
         if len(available_models) < 2:
             raise ValueError("Need at least 2 models for arena matchup")
 
-        # Randomly select 2 different models
-        selected = random.sample(available_models, 2)
-        return selected[0], selected[1]
+        # Get cached outputs
+        cached = await self.get_cached_outputs_for_profile(db, profile_hash, chunk_type)
+        cached_ids = set(cached.keys())
+        all_ids = [m["id"] for m in available_models]
+
+        # Get previously played pairs for this profile
+        if exclude_pairs is None:
+            result = await db.execute(
+                select(ArenaMatch.model_a_id, ArenaMatch.model_b_id).where(
+                    and_(
+                        ArenaMatch.profile_hash == profile_hash,
+                        ArenaMatch.chunk_type == chunk_type,
+                    )
+                )
+            )
+            played_pairs = {tuple(sorted([row[0], row[1]])) for row in result.fetchall()}
+        else:
+            played_pairs = {tuple(sorted(p)) for p in exclude_pairs}
+
+        # Try to find a pair we haven't played yet, preferring cached models
+        cached_list = [m for m in all_ids if m in cached_ids]
+        uncached_list = [m for m in all_ids if m not in cached_ids]
+
+        # Strategy: prefer pairs where at least one model is cached
+        # First priority: both cached, not played
+        # Second priority: one cached + one uncached, not played
+        # Third priority: any unplayed pair
+        # Last resort: random pair (even if played before)
+
+        def find_unplayed_pair(candidates: List[str]) -> Optional[Tuple[str, str]]:
+            random.shuffle(candidates)
+            for i, a in enumerate(candidates):
+                for b in candidates[i+1:]:
+                    if tuple(sorted([a, b])) not in played_pairs:
+                        return (a, b)
+            return None
+
+        # Try both cached
+        if len(cached_list) >= 2:
+            pair = find_unplayed_pair(cached_list)
+            if pair:
+                return pair
+
+        # Try one cached + one uncached
+        if cached_list and uncached_list:
+            random.shuffle(cached_list)
+            random.shuffle(uncached_list)
+            for a in cached_list:
+                for b in uncached_list:
+                    if tuple(sorted([a, b])) not in played_pairs:
+                        return (a, b)
+
+        # Try any unplayed pair
+        pair = find_unplayed_pair(all_ids)
+        if pair:
+            return pair
+
+        # Last resort: random pair
+        selected = random.sample(all_ids, 2)
+        return (selected[0], selected[1])
 
     async def create_match(
         self,
@@ -142,19 +249,28 @@ class ArenaService:
         profile_data: Dict[str, Any],
         chunk_type: str,
     ) -> ArenaMatch:
-        """Create a new arena match with randomly selected models."""
-        # Select random model pair
-        model_a, model_b = self.select_random_pair()
+        """Create a new arena match, reusing cached outputs when available."""
+        profile_hash = hash_profile(profile_data)
         profile_name = profile_data.get("name", "Unknown")
+
+        # Select models (prefers those with cached outputs)
+        model_a_id, model_b_id = await self.select_pair_for_match(db, profile_hash, chunk_type)
+
+        # Check for cached outputs
+        cached_a = await self.get_cached_output(db, profile_hash, chunk_type, model_a_id)
+        cached_b = await self.get_cached_output(db, profile_hash, chunk_type, model_b_id)
 
         # Create match record
         match = ArenaMatch(
             profile_name=profile_name,
             profile_data=profile_data,
+            profile_hash=profile_hash,
             chunk_type=chunk_type,
-            model_a_id=model_a["id"],
-            model_b_id=model_b["id"],
-            status="pending",
+            model_a_id=model_a_id,
+            model_b_id=model_b_id,
+            model_a_output=cached_a.output_text if cached_a else None,
+            model_b_output=cached_b.output_text if cached_b else None,
+            status="ready" if (cached_a and cached_b) else "pending",
         )
         db.add(match)
         await db.commit()
@@ -162,11 +278,104 @@ class ArenaService:
 
         return match
 
-    async def run_match_generations(self, db: AsyncSession, match_id: str) -> None:
-        """Run generations for both models in a match in parallel."""
+    async def generate_single_output(
+        self,
+        profile_data: Dict[str, Any],
+        profile_hash: str,
+        chunk_type: str,
+        model_id: str,
+    ) -> Optional[str]:
+        """Generate output for a single model and cache it."""
         from app.database import async_session_maker
 
-        # Get match
+        model_config = self.get_model_by_id(model_id)
+        if not model_config:
+            return None
+
+        provider = self.providers.get(model_config["provider"])
+        if not provider:
+            return None
+
+        async with async_session_maker() as db:
+            # Check if already exists or being generated
+            result = await db.execute(
+                select(ArenaOutput).where(
+                    and_(
+                        ArenaOutput.profile_hash == profile_hash,
+                        ArenaOutput.chunk_type == chunk_type,
+                        ArenaOutput.model_id == model_id,
+                    )
+                )
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                if existing.status == "completed":
+                    return existing.output_text
+                elif existing.status == "generating":
+                    return None  # Already being generated
+
+            # Create or update output record
+            if not existing:
+                output_record = ArenaOutput(
+                    profile_hash=profile_hash,
+                    chunk_type=chunk_type,
+                    model_id=model_id,
+                    status="generating",
+                )
+                db.add(output_record)
+            else:
+                output_record = existing
+                output_record.status = "generating"
+
+            await db.commit()
+            await db.refresh(output_record)
+            output_id = output_record.id
+
+        # Generate outside the session
+        system_prompt = PromptService.load_system_prompt()
+        user_prompt = PromptService.build_user_prompt(profile_data, chunk_type)
+        max_tokens = 16000 if chunk_type == "full-report" else 4000
+
+        try:
+            api_result = await provider.generate(
+                model_id=model_id,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=max_tokens,
+            )
+
+            async with async_session_maker() as db:
+                result = await db.execute(
+                    select(ArenaOutput).where(ArenaOutput.id == output_id)
+                )
+                output_record = result.scalar_one_or_none()
+                if output_record:
+                    if api_result.error:
+                        output_record.status = "failed"
+                    else:
+                        output_record.output_text = api_result.output_text
+                        output_record.status = "completed"
+                    await db.commit()
+                    return output_record.output_text if not api_result.error else None
+
+        except Exception as e:
+            print(f"Arena generation error for {model_id}: {e}")
+            async with async_session_maker() as db:
+                result = await db.execute(
+                    select(ArenaOutput).where(ArenaOutput.id == output_id)
+                )
+                output_record = result.scalar_one_or_none()
+                if output_record:
+                    output_record.status = "failed"
+                    await db.commit()
+
+        return None
+
+    async def run_match_generations(self, db: AsyncSession, match_id: str) -> None:
+        """Run generations for models that don't have cached outputs."""
+        from app.database import async_session_maker
+
         result = await db.execute(
             select(ArenaMatch).where(ArenaMatch.id == match_id)
         )
@@ -174,65 +383,70 @@ class ArenaService:
         if not match:
             return
 
-        # Update status
+        # If already ready, nothing to do
+        if match.status == "ready":
+            return
+
         match.status = "generating"
         await db.commit()
 
-        # Build prompts
-        system_prompt = PromptService.load_system_prompt()
-        user_prompt = PromptService.build_user_prompt(
-            match.profile_data, match.chunk_type
-        )
+        profile_hash = match.profile_hash or hash_profile(match.profile_data)
+        tasks = []
 
-        # Use more tokens for full report
-        max_tokens = 16000 if match.chunk_type == "full-report" else 4000
+        # Only generate for models that need it
+        if not match.model_a_output:
+            tasks.append(self.generate_single_output(
+                match.profile_data, profile_hash, match.chunk_type, match.model_a_id
+            ))
+        if not match.model_b_output:
+            tasks.append(self.generate_single_output(
+                match.profile_data, profile_hash, match.chunk_type, match.model_b_id
+            ))
 
-        # Run both generations in parallel with isolated sessions
-        async def generate_for_model(model_id: str, is_model_a: bool):
-            async with async_session_maker() as session:
-                # Get match again in this session
-                result = await session.execute(
-                    select(ArenaMatch).where(ArenaMatch.id == match_id)
-                )
-                m = result.scalar_one_or_none()
-                if not m:
-                    return
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                model_config = self.get_model_by_id(model_id)
-                if not model_config:
-                    return
+        # Update match with results
+        async with async_session_maker() as session:
+            result = await session.execute(
+                select(ArenaMatch).where(ArenaMatch.id == match_id)
+            )
+            m = result.scalar_one_or_none()
+            if m:
+                # Get cached outputs
+                cached_a = await self.get_cached_output(session, profile_hash, match.chunk_type, m.model_a_id)
+                cached_b = await self.get_cached_output(session, profile_hash, match.chunk_type, m.model_b_id)
 
-                provider = self.providers.get(model_config["provider"])
-                if not provider:
-                    return
+                if cached_a:
+                    m.model_a_output = cached_a.output_text
+                if cached_b:
+                    m.model_b_output = cached_b.output_text
 
-                try:
-                    api_result = await provider.generate(
-                        model_id=model_id,
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        max_tokens=max_tokens,
-                    )
+                m.status = "ready"
+                await session.commit()
 
-                    if not api_result.error:
-                        if is_model_a:
-                            m.model_a_output = api_result.output_text
-                        else:
-                            m.model_b_output = api_result.output_text
-                        await session.commit()
-                except Exception as e:
-                    print(f"Arena generation error for {model_id}: {e}")
+    async def pregenerate_remaining_models(
+        self, profile_data: Dict[str, Any], chunk_type: str
+    ) -> None:
+        """Background task to pre-generate outputs for remaining models."""
+        from app.database import async_session_maker
 
-        # Run both generations in parallel
-        await asyncio.gather(
-            generate_for_model(match.model_a_id, True),
-            generate_for_model(match.model_b_id, False),
-        )
+        profile_hash = hash_profile(profile_data)
 
-        # Update match status to ready
-        await db.refresh(match)
-        match.status = "ready"
-        await db.commit()
+        async with async_session_maker() as db:
+            models_needed = await self.get_models_needing_generation(db, profile_hash, chunk_type)
+
+        if not models_needed:
+            return
+
+        # Generate in parallel (limit concurrency to avoid overwhelming APIs)
+        semaphore = asyncio.Semaphore(3)
+
+        async def generate_with_limit(model_id: str):
+            async with semaphore:
+                await self.generate_single_output(profile_data, profile_hash, chunk_type, model_id)
+
+        await asyncio.gather(*[generate_with_limit(m) for m in models_needed], return_exceptions=True)
 
     async def get_match(self, db: AsyncSession, match_id: str) -> Optional[ArenaMatch]:
         """Get a match by ID."""
@@ -247,20 +461,10 @@ class ArenaService:
         match_id: str,
         winner: str
     ) -> Optional[Dict[str, Any]]:
-        """Submit a vote for a match and update Elo ratings.
-
-        Args:
-            db: Database session
-            match_id: Match ID
-            winner: "a", "b", or "tie"
-
-        Returns:
-            Dict with updated ratings if successful, None if match not found
-        """
+        """Submit a vote for a match and update Elo ratings."""
         if winner not in ("a", "b", "tie"):
             raise ValueError("Winner must be 'a', 'b', or 'tie'")
 
-        # Get match
         result = await db.execute(
             select(ArenaMatch).where(ArenaMatch.id == match_id)
         )
