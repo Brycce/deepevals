@@ -860,25 +860,11 @@ details summary {
     background: var(--gray-100);
 }
 
-.arena-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem;
+.arena-top-bar {
+    padding: 0.5rem 1rem;
     background: white;
     border-bottom: 1px solid var(--gray-200);
     flex-shrink: 0;
-}
-
-.toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.toolbar-title {
-    font-weight: 600;
-    font-size: 0.9rem;
 }
 
 .toolbar-info {
@@ -886,15 +872,53 @@ details summary {
     font-size: 0.8rem;
 }
 
+/* Sticky Header */
+.arena-sticky-header {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.sticky-panel-header {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+}
+
+.sticky-panel-header.left {
+    border-right: 1px solid var(--gray-200);
+}
+
+.sticky-panel-header.right {
+    justify-content: flex-end;
+}
+
+.sticky-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-right: 1px solid var(--gray-200);
+    min-width: 140px;
+}
+
 .toolbar-btn {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.75rem;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
     border: 1px solid var(--gray-300);
-    border-radius: 0.375rem;
+    border-radius: 0.25rem;
     background: white;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--gray-600);
     cursor: pointer;
     transition: all 0.15s;
@@ -906,14 +930,114 @@ details summary {
 }
 
 .toolbar-btn.active {
+    background: var(--gray-900);
+    border-color: var(--gray-900);
+    color: white;
+}
+
+.toolbar-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+.panel-label {
+    width: 1.4rem;
+    height: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-900);
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.elo-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--gray-100);
+}
+
+.elo-badge .positive { color: var(--success); }
+.elo-badge .negative { color: var(--danger); }
+
+/* Vote Buttons */
+.vote-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 0.25rem;
+    background: white;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.vote-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.vote-btn.vote-a:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.vote-btn.vote-b:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.vote-btn.vote-tie:hover {
+    background: var(--gray-100);
+}
+
+.vote-btn.vote-new {
     background: var(--primary);
     border-color: var(--primary);
     color: white;
 }
 
-.toolbar-btn svg {
-    width: 14px;
-    height: 14px;
+.vote-btn.vote-new:hover {
+    background: var(--primary-dark);
+}
+
+/* Result Badge */
+.result-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.result-badge.winner-a,
+.result-badge.winner-b {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.result-badge.tie {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.reveal-actions {
+    margin-top: 0.25rem;
 }
 
 /* Arena Panels */
@@ -932,44 +1056,6 @@ details summary {
     background: white;
     min-height: 0;
 }
-
-.arena-panel .panel-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--gray-200);
-    background: var(--gray-50);
-    flex-shrink: 0;
-}
-
-.panel-label {
-    width: 1.5rem;
-    height: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--gray-900);
-    color: white;
-    border-radius: 0.25rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-}
-
-.panel-title {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--gray-700);
-}
-
-.elo-badge {
-    margin-left: auto;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.elo-badge .positive { color: var(--success); }
-.elo-badge .negative { color: var(--danger); }
 
 .arena-panel .panel-content {
     flex: 1;
@@ -1033,89 +1119,6 @@ details summary {
 
 .arena-panel.winner {
     box-shadow: inset 0 0 0 2px var(--success);
-}
-
-/* Vote Bar */
-.arena-vote-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: white;
-    border-top: 1px solid var(--gray-200);
-    flex-shrink: 0;
-}
-
-.vote-prompt {
-    font-size: 0.85rem;
-    color: var(--gray-600);
-    margin-right: 0.5rem;
-}
-
-.vote-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.vote-btn {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--gray-300);
-    border-radius: 0.375rem;
-    background: white;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--gray-700);
-    cursor: pointer;
-    transition: all 0.15s;
-    text-decoration: none;
-}
-
-.vote-btn:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-400);
-}
-
-.vote-btn.vote-a:hover {
-    background: #dbeafe;
-    border-color: #3b82f6;
-    color: #1d4ed8;
-}
-
-.vote-btn.vote-b:hover {
-    background: #dbeafe;
-    border-color: #3b82f6;
-    color: #1d4ed8;
-}
-
-.vote-btn.vote-new {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-.vote-btn.vote-new:hover {
-    background: var(--primary-dark);
-}
-
-/* Result Banner */
-.arena-result-banner {
-    padding: 0.6rem 1rem;
-    text-align: center;
-    font-weight: 600;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-}
-
-.arena-result-banner.winner-a,
-.arena-result-banner.winner-b {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.arena-result-banner.tie {
-    background: var(--gray-100);
-    color: var(--gray-600);
 }
 
 /* Generating State */

@@ -4,19 +4,8 @@
 
 {% block content %}
 <div class="arena-page">
-    <div class="arena-toolbar">
-        <div class="toolbar-left">
-            <span class="toolbar-title">Arena Match</span>
-            <span class="toolbar-info" id="match-info">Loading...</span>
-        </div>
-        <div class="toolbar-right">
-            <button id="sync-toggle" class="toolbar-btn active" title="Sync scroll">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"/>
-                </svg>
-                <span>Synced</span>
-            </button>
-        </div>
+    <div class="arena-top-bar">
+        <span class="toolbar-info" id="match-info">Loading...</span>
     </div>
 
     <!-- Generating State -->
@@ -31,69 +20,76 @@
 
     <!-- Voting State -->
     <div id="voting-state" class="hidden">
+        <div class="arena-sticky-header">
+            <div class="sticky-panel-header left">
+                <span class="panel-label">A</span>
+                <span class="panel-title">Option A</span>
+                <button class="vote-btn vote-a" data-winner="a">A is better</button>
+            </div>
+            <div class="sticky-center">
+                <button id="sync-toggle" class="toolbar-btn active" title="Toggle sync scroll">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"/>
+                    </svg>
+                    <span>Synced</span>
+                </button>
+                <button class="vote-btn vote-tie" data-winner="tie">Tie</button>
+            </div>
+            <div class="sticky-panel-header right">
+                <button class="vote-btn vote-b" data-winner="b">B is better</button>
+                <span class="panel-title">Option B</span>
+                <span class="panel-label">B</span>
+            </div>
+        </div>
+
         <div class="arena-panels">
             <div class="arena-panel">
-                <div class="panel-header">
-                    <span class="panel-label">A</span>
-                    <span class="panel-title">Option A</span>
-                </div>
                 <div class="panel-content markdown-body" id="output-a">
                     Loading...
                 </div>
             </div>
 
             <div class="arena-panel">
-                <div class="panel-header">
-                    <span class="panel-label">B</span>
-                    <span class="panel-title">Option B</span>
-                </div>
                 <div class="panel-content markdown-body" id="output-b">
                     Loading...
                 </div>
-            </div>
-        </div>
-
-        <div class="arena-vote-bar">
-            <span class="vote-prompt">Which is better?</span>
-            <div class="vote-buttons">
-                <button class="vote-btn vote-a" data-winner="a">A is better</button>
-                <button class="vote-btn vote-tie" data-winner="tie">Tie</button>
-                <button class="vote-btn vote-b" data-winner="b">B is better</button>
             </div>
         </div>
     </div>
 
     <!-- Reveal State -->
     <div id="reveal-state" class="hidden">
-        <div class="arena-result-banner" id="result-banner">
-            <span id="reveal-result"></span>
+        <div class="arena-sticky-header reveal">
+            <div class="sticky-panel-header left" id="panel-a-reveal">
+                <span class="panel-label">A</span>
+                <span class="panel-title" id="reveal-model-a">Model A</span>
+                <span class="elo-badge" id="elo-change-a"></span>
+            </div>
+            <div class="sticky-center">
+                <div class="result-badge" id="result-banner">
+                    <span id="reveal-result"></span>
+                </div>
+                <div class="reveal-actions">
+                    <a href="/arena" class="vote-btn vote-new">New Match</a>
+                </div>
+            </div>
+            <div class="sticky-panel-header right" id="panel-b-reveal">
+                <span class="elo-badge" id="elo-change-b"></span>
+                <span class="panel-title" id="reveal-model-b">Model B</span>
+                <span class="panel-label">B</span>
+            </div>
         </div>
 
         <div class="arena-panels">
-            <div class="arena-panel" id="panel-a-reveal">
-                <div class="panel-header">
-                    <span class="panel-label">A</span>
-                    <span class="panel-title" id="reveal-model-a">Model A</span>
-                    <span class="elo-badge" id="elo-change-a"></span>
-                </div>
+            <div class="arena-panel" id="panel-a-content">
                 <div class="panel-content markdown-body" id="reveal-output-a">
                 </div>
             </div>
 
-            <div class="arena-panel" id="panel-b-reveal">
-                <div class="panel-header">
-                    <span class="panel-label">B</span>
-                    <span class="panel-title" id="reveal-model-b">Model B</span>
-                    <span class="elo-badge" id="elo-change-b"></span>
-                </div>
+            <div class="arena-panel" id="panel-b-content">
                 <div class="panel-content markdown-body" id="reveal-output-b">
                 </div>
             </div>
-        </div>
-
-        <div class="arena-vote-bar">
-            <a href="/arena" class="vote-btn vote-new">New Match</a>
-            <a href="/arena" class="vote-btn vote-tie">Leaderboard</a>
         </div>
     </div>
 </div>
@@ -256,20 +252,20 @@ async function showRevealState() {
     document.getElementById('match-info').textContent =
         `${revealed.profile_name} / ${revealed.chunk_type}`;
 
-    // Show winner banner
+    // Show winner badge
     const resultEl = document.getElementById('reveal-result');
     const banner = document.getElementById('result-banner');
     if (revealed.winner === 'a') {
-        resultEl.textContent = `Winner: ${revealed.model_a_display_name}`;
-        banner.className = 'arena-result-banner winner-a';
-        document.getElementById('panel-a-reveal').classList.add('winner');
+        resultEl.textContent = `A wins`;
+        banner.className = 'result-badge winner-a';
+        document.getElementById('panel-a-content').classList.add('winner');
     } else if (revealed.winner === 'b') {
-        resultEl.textContent = `Winner: ${revealed.model_b_display_name}`;
-        banner.className = 'arena-result-banner winner-b';
-        document.getElementById('panel-b-reveal').classList.add('winner');
+        resultEl.textContent = `B wins`;
+        banner.className = 'result-badge winner-b';
+        document.getElementById('panel-b-content').classList.add('winner');
     } else {
         resultEl.textContent = 'Tie';
-        banner.className = 'arena-result-banner tie';
+        banner.className = 'result-badge tie';
     }
 
     document.getElementById('reveal-model-a').textContent = revealed.model_a_display_name;
