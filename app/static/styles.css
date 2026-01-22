@@ -851,216 +851,323 @@ details summary {
 .leaderboard-table tr.rank-2 .rank-cell::before { content: "🥈 "; }
 .leaderboard-table tr.rank-3 .rank-cell::before { content: "🥉 "; }
 
-/* Arena Match - Side by Side Comparison */
-.arena-comparison {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.arena-output {
+/* Arena Match Page - Vercel-style */
+.arena-page {
+    margin: -1rem -2rem -2rem -2rem;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 220px);
-    min-height: 500px;
-    overflow: hidden;
-    padding: 1rem;
+    height: calc(100vh - 60px);
+    background: var(--gray-100);
 }
 
-.arena-output.card {
-    padding: 1rem;
-}
-
-.arena-output-header {
+.arena-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
     border-bottom: 1px solid var(--gray-200);
-    margin-bottom: 0.75rem;
     flex-shrink: 0;
 }
 
-.arena-output-header h2 {
-    margin: 0;
-    font-size: 1rem;
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.toolbar-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.toolbar-info {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 0.375rem;
+    background: white;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.toolbar-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.toolbar-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.toolbar-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Arena Panels */
+.arena-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    flex: 1;
+    min-height: 0;
+    background: var(--gray-200);
+}
+
+.arena-panel {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    min-height: 0;
+}
+
+.arena-panel .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    flex-shrink: 0;
+}
+
+.panel-label {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-900);
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
     font-weight: 600;
 }
 
-.arena-output-content {
+.panel-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.elo-badge {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.elo-badge .positive { color: var(--success); }
+.elo-badge .negative { color: var(--danger); }
+
+.arena-panel .panel-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
-    background: var(--gray-50);
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.6;
+    padding: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.65;
+    min-height: 0;
 }
 
-.arena-output-content h1 {
-    font-size: 1.25rem;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.arena-output-content h2 {
-    font-size: 1.1rem;
+.arena-panel .panel-content h1 {
+    font-size: 1.15rem;
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
 }
 
-.arena-output-content h3 {
+.arena-panel .panel-content h1:first-child {
+    margin-top: 0;
+}
+
+.arena-panel .panel-content h2 {
     font-size: 1rem;
     margin-top: 1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
 }
 
-.arena-output-content p {
-    margin-bottom: 0.75rem;
+.arena-panel .panel-content h3 {
+    font-size: 0.9rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.35rem;
 }
 
-.arena-output-content ul, .arena-output-content ol {
-    margin-bottom: 0.75rem;
+.arena-panel .panel-content p {
+    margin-bottom: 0.65rem;
+}
+
+.arena-panel .panel-content ul,
+.arena-panel .panel-content ol {
+    margin-bottom: 0.65rem;
     padding-left: 1.25rem;
 }
 
-.arena-output-content table {
+.arena-panel .panel-content table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 0.75rem;
     font-size: 0.8rem;
 }
 
-.arena-output-content th,
-.arena-output-content td {
+.arena-panel .panel-content th,
+.arena-panel .panel-content td {
     border: 1px solid var(--gray-200);
-    padding: 0.4rem 0.5rem;
+    padding: 0.35rem 0.5rem;
     text-align: left;
 }
 
-.arena-output-content th {
-    background: var(--gray-100);
+.arena-panel .panel-content th {
+    background: var(--gray-50);
     font-weight: 600;
 }
 
-/* Vote Panel */
-.arena-vote-panel {
-    text-align: center;
-    padding: 1rem 1.5rem;
-    position: sticky;
-    bottom: 0;
-    background: white;
-    border-top: 1px solid var(--gray-200);
-    margin: 0 -2rem -2rem -2rem;
-    padding: 1rem 2rem;
+.arena-panel.winner {
+    box-shadow: inset 0 0 0 2px var(--success);
 }
 
-.arena-vote-panel h3 {
-    margin-bottom: 0.75rem;
-    font-size: 0.95rem;
+/* Vote Bar */
+.arena-vote-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-top: 1px solid var(--gray-200);
+    flex-shrink: 0;
+}
+
+.vote-prompt {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-right: 0.5rem;
 }
 
 .vote-buttons {
     display: flex;
-    gap: 0.75rem;
-    justify-content: center;
+    gap: 0.5rem;
 }
 
 .vote-btn {
-    min-width: 100px;
-    padding: 0.6rem 1.25rem;
-    font-size: 0.9rem;
-}
-
-/* Reveal State */
-.arena-reveal {
-    padding: 2rem;
-}
-
-.arena-reveal h2 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.reveal-result {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.winner-badge {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: var(--success);
-    color: white;
-    border-radius: 9999px;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.tie-badge {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: var(--gray-500);
-    color: white;
-    border-radius: 9999px;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.arena-output-revealed {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 0.375rem;
     background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    padding: 1rem;
-    max-height: calc(100vh - 350px);
-    min-height: 400px;
-    overflow-y: auto;
-}
-
-.arena-output-revealed .arena-output-header {
-    border-bottom: 1px solid var(--gray-200);
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.arena-output-revealed .arena-output-header h3 {
-    margin: 0;
-    font-size: 0.95rem;
-}
-
-.arena-output-revealed .arena-output-content {
     font-size: 0.8rem;
-    line-height: 1.5;
-    padding: 0;
-    background: transparent;
-}
-
-.elo-change {
-    font-size: 0.875rem;
     font-weight: 500;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
 }
 
-.reveal-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 2rem;
+.vote-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.vote-btn.vote-a:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.vote-btn.vote-b:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.vote-btn.vote-new {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.vote-btn.vote-new:hover {
+    background: var(--primary-dark);
+}
+
+/* Result Banner */
+.arena-result-banner {
+    padding: 0.6rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.arena-result-banner.winner-a,
+.arena-result-banner.winner-b {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.arena-result-banner.tie {
+    background: var(--gray-100);
+    color: var(--gray-600);
 }
 
 /* Generating State */
-.generating-content {
+.arena-generating {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.generating-box {
     text-align: center;
     padding: 2rem;
 }
 
-.generating-content h2 {
-    margin-bottom: 1rem;
+.generating-box h3 {
+    margin: 1rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+.generating-box p {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
 }
 
 .generation-status {
-    margin-top: 1.5rem;
-    font-size: 0.875rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.gen-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gray-100);
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+}
+
+.gen-item.ready {
+    background: #dcfce7;
+}
+
+.gen-item .gen-label {
+    font-weight: 600;
+}
+
+.gen-item.ready .gen-status {
+    color: #166534;
 }
 
 .text-warning {
@@ -1077,11 +1184,7 @@ details summary {
         position: static;
     }
 
-    .arena-comparison {
+    .arena-panels {
         grid-template-columns: 1fr;
-    }
-
-    .arena-output {
-        max-height: none;
     }
 }
